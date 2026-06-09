@@ -26,7 +26,7 @@ func (n *NucleiTool) Run(ctx context.Context, target string, opts Options) (*Too
 		}
 	}
 
-	timeout := time.Duration(opts.GetInt("timeout", 120)) * time.Second
+	timeout := time.Duration(opts.GetInt("timeout", 300)) * time.Second
 
 	severity := opts.GetStringSlice("severity")
 	if severity == nil {

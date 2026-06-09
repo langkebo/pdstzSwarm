@@ -52,6 +52,12 @@ type Context struct {
 	// templates that want to enumerate capabilities in the system
 	// prompt. Optional.
 	Tools []ToolDescription
+
+	// Skills is injected skill knowledge from the openclaw-sec-skills
+	// community index. It is a pre-rendered block of relevant
+	// open-source skill recommendations. Optional — safe to leave
+	// empty, in which case templates omit the section.
+	Skills string
 }
 
 // ToolDescription is a minimal struct for template rendering. Provider

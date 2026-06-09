@@ -1,0 +1,219 @@
+/* ------------------------------------------------------------------ */
+/* xterm.js overrides — P5+ terminal                                   */
+/*                                                                     */
+/* xterm.js writes its CSS into node_modules CSS. We override the     */
+/* critical bits so the terminal matches the Pentest-Swarm-AI design  */
+/* tokens (signal-green cursor, slate text, glass panel background). */
+/* ------------------------------------------------------------------ */
+
+.xterm {
+  height: 100%;
+  width: 100%;
+  font-family: var(--font-jetbrains-mono), "JetBrains Mono", monospace;
+  font-feature-settings: "liga" 0, "calt" 1;
+}
+
+.xterm-viewport,
+.xterm-screen {
+  background: transparent !important;
+}
+
+.xterm-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 255, 156, 0.3) transparent;
+}
+
+.xterm-viewport::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.xterm-viewport::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 156, 0.25);
+  border-radius: 3px;
+}
+
+.xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 156, 0.45);
+}
+
+.xterm-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Selection */
+.xterm-selection {
+  background: rgba(0, 255, 156, 0.18) !important;
+}
+
+/* Cursor — signal-green, slow blink */
+.xterm-cursor-layer .xterm-cursor {
+  background: var(--accent) !important;
+  box-shadow: 0 0 8px rgba(0, 255, 156, 0.6);
+  animation: terminal-blink 1.05s steps(1) infinite;
+}
+
+@keyframes terminal-blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0.35; }
+}
+
+/* Default foreground — slate */
+.xterm-rows > div {
+  color: var(--text-primary);
+}
+
+/* ------------------------------------------------------------------ */
+/* Terminal frame — wraps the actual xterm with the project            */
+/* crt-scanlines effect. Mirrors GlassPanel's frame/strong classes.   */
+/* ------------------------------------------------------------------ */
+
+.terminal-frame {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.terminal-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 255, 156, 0.04) 0,
+    rgba(0, 255, 156, 0.04) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: screen;
+}
+
+.terminal-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 50%,
+    rgba(0, 0, 0, 0.45) 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+.terminal-inner {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  z-index: 0;
+  padding: 8px 0 4px 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Toolbar — a small bar above the terminal that gives users one-     */
+/* click access to: clear, search, copy, font-size. Shown when        */
+/* `showToolbar` is enabled (default true in /live).                  */
+/* ------------------------------------------------------------------ */
+
+.terminal-toolbar {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10, 10, 15, 0.6);
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.terminal-toolbar > .label {
+  color: var(--accent);
+}
+
+.terminal-toolbar > .spacer {
+  flex: 1;
+}
+
+.terminal-toolbar > button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  transition: all 120ms ease-out;
+}
+
+.terminal-toolbar > button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(0, 255, 156, 0.08);
+}
+
+.terminal-toolbar > button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.terminal-toolbar > input.search {
+  flex: 0 1 200px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+  outline: none;
+}
+
+.terminal-toolbar > input.search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* Match highlight from @xterm/addon-search */
+.xterm-find-result--highlight {
+  background: rgba(255, 193, 7, 0.4) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ------------------------------------------------------------------ */
+/* Status pill at the bottom — shows the current line/col when the    */
+/* user is focused. Hidden by default, revealed on focus.            */
+/* ------------------------------------------------------------------ */
+
+.terminal-status {
+  position: absolute;
+  bottom: 4px;
+  right: 8px;
+  z-index: 3;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 200ms ease;
+  pointer-events: none;
+}
+
+.terminal-frame:focus-within .terminal-status {
+  opacity: 0.7;
+}

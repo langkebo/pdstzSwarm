@@ -1,0 +1,1826 @@
+[
+  {
+    "name": "sast-skills",
+    "description": "Scan codebases for security flaws with LLM agent skills — turn AI assistants into SAST scanners",
+    "category": "code_audit",
+    "source": "https://github.com/reasonless-throne486/sast-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "securecoder",
+    "description": "Installable AI-agent skill bundle for OWASP-driven code scanning, fixing, secure-build supervision",
+    "category": "code_audit",
+    "source": "https://github.com/nerdy-krishna/securecoder",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "security-audit-system-skill",
+    "description": "Structured security audit system for Claude agents — improve security practices on any repo",
+    "category": "code_audit",
+    "source": "https://github.com/armstrys/security-audit-system-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "agent-skills",
+    "description": "100+ specialized AI agent skills — development, security, design, FinOps, compliance, testing",
+    "category": "code_audit",
+    "source": "https://github.com/simota/agent-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "agent-skills",
+    "description": "Agent skills for AI coding agents — Laravel, React, TypeScript, security, code quality, technical debt",
+    "category": "code_audit",
+    "source": "https://github.com/AsyrafHussin/agent-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "nsauditor-ai-agent-skill",
+    "description": "AI Agent Skill for NSAuditor AI — MCP tools, schemas, plugins, security audit workflows",
+    "category": "code_audit",
+    "source": "https://github.com/nsasoft/nsauditor-ai-agent-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Skill-Sonar",
+    "description": "Protect AI agents with lifecycle security for pre-install checks and runtime monitoring",
+    "category": "code_audit",
+    "source": "https://github.com/Dulcianamongol903/Skill-Sonar",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "skills-scanner",
+    "description": "Security scanner for AI agent skills, MCP servers, and agent harness configs",
+    "category": "code_audit",
+    "source": "https://github.com/HTS-ASPM/skills-scanner",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "honeybadger",
+    "description": "Security scanner for AI agent skills — detects secrets, CVEs, supply chain attacks, prompt injection in SKILL.md",
+    "category": "code_audit",
+    "source": "https://github.com/famclaw/honeybadger",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "skill-dfyx_code_security_review",
+    "description": "五阶段标准化审计协议，系统性发现安全漏洞",
+    "category": "code_audit",
+    "source": "https://github.com/EastSword/skill-dfyx_code_security_review",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "whisper-skills",
+    "description": "Agent Skills for WhisperGraph MCP — threat investigation, Cypher query authoring, brand-protection sweeps",
+    "category": "code_audit",
+    "source": "https://github.com/whisper-sec/whisper-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "security-hardening",
+    "description": "Portable defensive application security skill — OWASP, MCP security, prompt injection, threat modeling",
+    "category": "code_audit",
+    "source": "https://github.com/StealthyLabsHQ/security-hardening",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "claude-active-directory",
+    "description": "Active Directory offensive security AI agent harness — 8 skill domains, 13 slash commands, 7 agents",
+    "category": "code_audit",
+    "source": "https://github.com/Evaluris-Solutions/claude-active-directory",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "security-lab",
+    "description": "AI-driven security testing toolkit: 37 skills, multi-agent pentesting, comparison framework for web apps and APIs",
+    "category": "code_audit",
+    "source": "https://github.com/Lirok228/security-lab",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "claude-security-skills",
+    "description": "Defensive security skills for Claude Code — web applications and generative AI systems",
+    "category": "code_audit",
+    "source": "https://github.com/Dolphinllc/claude-security-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "skills",
+    "description": "Trail of Bits Claude Code skills for security research, vulnerability detection, and audit workflows",
+    "category": "code_audit",
+    "source": "https://github.com/trailofbits/skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "SlowMist-Learning-Roadmap-for-Becoming-a-Smart-Contract-Auditor",
+    "description": "Smart contract audit skills roadmap for beginners, auditors, engineers, etc.",
+    "category": "code_audit",
+    "source": "https://github.com/slowmist/SlowMist-Learning-Roadmap-for-Becoming-a-Smart-Contract-Auditor",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "solsec",
+    "description": "A collection of resources to study Solana smart contract security, auditing, and exploits.",
+    "category": "code_audit",
+    "source": "https://github.com/sannykim/solsec",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Smart-Contract-Security-Audits",
+    "description": "Certified Smart Contract Audits for Ethereum, Solana, Near, Cardano, Aptos, Sui, Binance Smart Chain, Fantom, EOS, Tezos",
+    "category": "code_audit",
+    "source": "https://github.com/softstack/Smart-Contract-Security-Audits",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Smart-Contract-Auditor-Tools-and-Techniques",
+    "description": "This repo contains a comprehensive list of smart contract auditor tools and techniques that can be utilized by both smar",
+    "category": "code_audit",
+    "source": "https://github.com/shanzson/Smart-Contract-Auditor-Tools-and-Techniques",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "SmartContracts-audit-checklist",
+    "description": "A checklist of things to look for when auditing Solidity smart contracts.",
+    "category": "code_audit",
+    "source": "https://github.com/tamjid0x01/SmartContracts-audit-checklist",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "smart-contract-audits",
+    "description": "ContractWolf audited smart contracts",
+    "category": "code_audit",
+    "source": "https://github.com/ContractWolf/smart-contract-audits",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "QuillAudit_Smart_contract_Auditor_Roadmap",
+    "description": "Smart Contract Auditor Roadmap",
+    "category": "code_audit",
+    "source": "https://github.com/Quillhash/QuillAudit_Smart_contract_Auditor_Roadmap",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "smart-contract-auditing-heuristics",
+    "description": "Heuristics for smart contract auditors",
+    "category": "code_audit",
+    "source": "https://github.com/OpenCoreCH/smart-contract-auditing-heuristics",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "java-audit-skills",
+    "description": "专注于java代码审计skills",
+    "category": "code_audit",
+    "source": "https://github.com/RuoJi6/java-audit-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "QuillAudit_smart_contract_audit_Reports",
+    "description": "QuillAudits — Smart Contract Audits for DeFi, RWA, DEXs, Tokens, DeAI & DApps",
+    "category": "code_audit",
+    "source": "https://github.com/Quillhash/QuillAudit_smart_contract_audit_Reports",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "PHP-Code-Audit-Skill",
+    "description": "PHP-Code-Audit-Skill是一个专注于PHP代码审计的Skill",
+    "category": "code_audit",
+    "source": "https://github.com/0xShe/PHP-Code-Audit-Skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "agentseal",
+    "description": "Security toolkit for AI agents. Scan your machine for dangerous skills and MCP configs, monitor for supply chain attacks",
+    "category": "code_audit",
+    "source": "https://github.com/getagentseal/agentseal",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "wxmini-security-audit",
+    "description": "微信小程序全自动安全审计 Skill，基于 Claude Code Agent Teams。7 Agent 协作，覆盖敏感信息、API接口、加密分析、漏洞分析四大维度。采用脚本+LLM双层架构，脚本保证覆盖率，LLM保证准确率。",
+    "category": "code_audit",
+    "source": "https://github.com/sssmmmwww/wxmini-security-audit",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "claude-security-audit",
+    "description": "Skill Claude Code pour audit de sécurité complet (OWASP Top 10, CWE/CVE, headers, auth, paywall, infra)",
+    "category": "code_audit",
+    "source": "https://github.com/VicKayro/claude-security-audit",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "claude-cybersecurity",
+    "description": "AI-powered cybersecurity code review skill for Claude Code. 8 specialist agents, OWASP 2025, CWE Top 25, MITRE ATT&CK, 1",
+    "category": "code_audit",
+    "source": "https://github.com/AgriciDaniel/claude-cybersecurity",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "panguard-ai",
+    "description": "Open-source security platform for AI agents -- audits skills before install, monitors 24/7, shares threat intelligence a",
+    "category": "code_audit",
+    "source": "https://github.com/panguard-ai/panguard-ai",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "PHP_AUDIT_SKILLS",
+    "description": "PHP静态+动态+AI代码审计skills",
+    "category": "code_audit",
+    "source": "https://github.com/yunmengya/PHP_AUDIT_SKILLS",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "claude-security-research-skill",
+    "description": "AI-powered security research assistant for Claude Code — structured assessment workflows, tool orchestration, and profes",
+    "category": "code_audit",
+    "source": "https://github.com/rhysha/claude-security-research-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "security-audit-skill",
+    "description": "Agent Skill for PHP security audits - OWASP patterns, vulnerability detection",
+    "category": "code_audit",
+    "source": "https://github.com/netresearch/security-audit-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "java-audit-skillss",
+    "description": "java-audit-skillss",
+    "category": "code_audit",
+    "source": "https://github.com/p2zhhh/java-audit-skillss",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "claude-skills",
+    "description": "UX/UI evaluation, AI governance, and AI security skills for AI coding assistants. Audit interfaces with Nielsen heuristi",
+    "category": "code_audit",
+    "source": "https://github.com/mastepanoski/claude-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "marketplace",
+    "description": "Security-audited skills for Claude, Codex & Claude Code. One-click install, quality verified.",
+    "category": "code_audit",
+    "source": "https://github.com/aiskillstore/marketplace",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "supabase-pentest-skills",
+    "description": "24 AI Agent Skills for professional security auditing of Supabase applications. Detection, key extraction, RLS testing,",
+    "category": "code_audit",
+    "source": "https://github.com/yoanbernabeu/supabase-pentest-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Code Audit",
+    "description": "覆盖 55+ 漏洞类型，双轨审计模型，多 Agent 深度分析",
+    "category": "code_audit",
+    "source": "https://github.com/3stoneBrother/code-audit",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "zh-audit-skills-hub",
+    "description": "中文用户代码审计 Agent Skills 仓库",
+    "category": "code_audit",
+    "source": "https://github.com/youki992/zh-audit-skills-hub",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "perseus",
+    "description": "AI-powered security assessment SKILLS for codebase. Multi-language",
+    "category": "code_audit",
+    "source": "https://github.com/kaivyy/perseus",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "full-stack-audit",
+    "description": "90-point full-stack audit skill for websites and web apps. Catches security holes, accessibility issues",
+    "category": "code_audit",
+    "source": "https://github.com/jalaalrd/full-stack-audit",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "sentinelai",
+    "description": "Security scanner, cost tracker, and model router for the AI ecosystem",
+    "category": "code_audit",
+    "source": "https://github.com/Stacksheild/sentinelai",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "trivy-security-agent-skill",
+    "description": "AI-powered Trivy security scanning skill for Claude Code",
+    "category": "code_audit",
+    "source": "https://github.com/chaubes/trivy-security-agent-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "dependency-scanner",
+    "description": "Claude Code skill that scans npm/pip dependencies for vulnerabilities",
+    "category": "code_audit",
+    "source": "https://github.com/friday-james/dependency-scanner",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "iothackbot",
+    "description": "IoT HackBot: A collection of Claude Skills and custom tooling for hybrid IoT pentesting",
+    "category": "pentest",
+    "source": "https://github.com/BrownFineSecurity/iothackbot",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Android-Pentesting-Checklist",
+    "description": "Delve into a comprehensive checklist, your ultimate companion for Android app penetration testing. Identify vulnerabilit",
+    "category": "pentest",
+    "source": "https://github.com/Hrishikesh7665/Android-Pentesting-Checklist",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "labs-pentest",
+    "description": "Free Labs to Train Your Pentest / CTF Skills",
+    "category": "pentest",
+    "source": "https://github.com/michelbernardods/labs-pentest",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "threat-modeling",
+    "description": "AI-native automated software risk analysis skill. LLM-driven, Code-First approach for comprehensive security risk assess",
+    "category": "pentest",
+    "source": "https://github.com/fr33d3m0n/threat-modeling",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "communitytools",
+    "description": "Open-source Claude Code skills, agents, and slash commands for AI-powered penetration testing, bug bounty hunting, and s",
+    "category": "pentest",
+    "source": "https://github.com/transilienceai/communitytools",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "awesome-claude-skills-security",
+    "description": "Security testing toolkit for Claude Code: curated SecLists wordlists, injection payloads, and expert agents for authoriz",
+    "category": "pentest",
+    "source": "https://github.com/Eyadkelleh/awesome-claude-skills-security",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "public-skills-builder",
+    "description": "Generate Claude Code bug bounty skills from public HackerOne reports and GitHub writeups — 18 vuln classes, no private r",
+    "category": "pentest",
+    "source": "https://github.com/shuvonsec/public-skills-builder",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "BugHunterMethodology",
+    "description": "A comprehensive bug bounty methodology compiled from extensive research, covering web application reconnaissance, checkl",
+    "category": "pentest",
+    "source": "https://github.com/alihussainzada/BugHunterMethodology",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "pentest-skills",
+    "description": "💬 🚀 告别繁琐命令行，用自然语言驱动专业级渗透测试。 ⚡ 让安全测试从未如此简单、高效。Forget complex command lines. 🛡️ Professional penetration testing, powered",
+    "category": "pentest",
+    "source": "https://github.com/crazyMarky/pentest-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "OneLinerBounty",
+    "description": "OneLinerBounty is a collection of quick, actionable bug bounty tips in one-liner format. Perfect for bug hunters looking",
+    "category": "pentest",
+    "source": "https://github.com/yogsec/OneLinerBounty",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "SecToolkit",
+    "description": "Welcome SecToolkit repository! This is a comprehensive collection of cybersecurity and bug bounty hunting topics. Here,",
+    "category": "pentest",
+    "source": "https://github.com/n4itr0-07/SecToolkit",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "picocom-claude-skill",
+    "description": "A Claude Code skill for using picocom to give access to a live UART shell for enumeration, pentesting, etc.",
+    "category": "pentest",
+    "source": "https://github.com/BrownFineSecurity/picocom-claude-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "VulnBox",
+    "description": "VulnBox is a container that is intentionally designed with vulnerabilities to allow security professionals to practice a",
+    "category": "pentest",
+    "source": "https://github.com/truocphan/VulnBox",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Active-Directory-Workbook",
+    "description": "A comprehensive and hands-on workbook designed to sharpen your Active Directory penetration testing skills. Whether you'",
+    "category": "pentest",
+    "source": "https://github.com/ShubhamDubeyy/Active-Directory-Workbook",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "pentester-skills",
+    "description": "坤式网络安全学习法，不只是学习路线还是笔记。",
+    "category": "pentest",
+    "source": "https://github.com/xsecself/pentester-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "KaliPAKU",
+    "description": "KaliPAKU is a training tool for penetration testing using Kali Linux. It is designed to help security professionals and",
+    "category": "pentest",
+    "source": "https://github.com/01rabbit/KaliPAKU",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "secknowledge-skill",
+    "description": "88,636 个真实漏洞案例 + 5,600+ 篇安全研究文档知识库",
+    "category": "pentest",
+    "source": "https://github.com/Pa55w0rd/secknowledge-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Security Auditor",
+    "description": "OWASP 十大审计、CORS/CSP 配置、SQL 注入/XSS 防护",
+    "category": "pentest",
+    "source": "https://github.com/clause-labs/security-auditor",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Pentest Api Attacker",
+    "description": "OWASP API 安全前十名测试",
+    "category": "pentest",
+    "source": "https://github.com/clause-labs/pentest-api-attacker",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Pentest Auth Bypass",
+    "description": "身份验证绕过和账户接管测试",
+    "category": "pentest",
+    "source": "https://github.com/clause-labs/pentest-auth-bypass",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "claude-code-pentest",
+    "description": "6 skills that automate the entire pentest lifecycle. From recon to exploitation",
+    "category": "pentest",
+    "source": "https://github.com/Orizon-eu/claude-code-pentest",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Anthropic-Cybersecurity-Skills",
+    "description": "754 structured cybersecurity skills for AI agents, mapped to MITRE ATT&CK, NIST, OWASP",
+    "category": "pentest",
+    "source": "https://github.com/mukul97/Anthropic-Cybersecurity-Skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "claude-forge",
+    "description": "Supercharge Claude Code with 11 AI agents, 36 commands & 15 skills",
+    "category": "pentest",
+    "source": "https://github.com/sangrokjung/claude-forge",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "pownie",
+    "description": "Agent harness for offensive security. Plugin for Claude Code packed with skills, memory, rules",
+    "category": "pentest",
+    "source": "https://github.com/d0gesec/pownie",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "pentest-skills",
+    "description": "自动化渗透 agent skills",
+    "category": "pentest",
+    "source": "https://github.com/Jumbo-WJB/pentest-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "pentestagent",
+    "description": "AI agent framework for black-box security testing — bug bounty, red-team, penetration testing",
+    "category": "pentest",
+    "source": "https://github.com/GH05TCREW/pentestagent",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Zen-Ai-Pentest",
+    "description": "AI-Powered Penetration Testing Framework — automated vulnerability scanning, multi-agent system, compliance reporting",
+    "category": "pentest",
+    "source": "https://github.com/SHAdd0WTAka/Zen-Ai-Pentest",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "CyberStrike",
+    "description": "AI-powered offensive security agent with 7,300+ actionable security skills — MITRE ATT&CK, CIS Benchmarks, OWASP, NIST",
+    "category": "pentest",
+    "source": "https://github.com/CyberStrikeus/CyberStrike",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "ultraship",
+    "description": "Claude Code plugin — 39 skills including pentesting, safety guardrails, canary monitoring, code review",
+    "category": "pentest",
+    "source": "https://github.com/Houseofmvps/ultraship",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "kali-pentest",
+    "description": "Kali Linux penetration testing skill for AI agents — 200+ CLI tools, 15 scenario playbooks, attack path planning",
+    "category": "pentest",
+    "source": "https://github.com/x-glacier/kali-pentest",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Threatswarm",
+    "description": "27 scope-enforced AI agents running full pentest kill-chain (recon→exploit→post-ex→DFIR→report), 754 MITRE-mapped skills",
+    "category": "pentest",
+    "source": "https://github.com/mukul975/Threatswarm",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "VulnClaw",
+    "description": "AI Agent + MCP 工具链 + 渗透 Skill 编排，自然语言输入自动完成全流程渗透测试",
+    "category": "pentest",
+    "source": "https://github.com/Unclecheng-li/VulnClaw",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "claude-code-pentest",
+    "description": "6 Claude Code skills 自动化完整渗透测试流程 — 信息收集、漏洞利用链、Bug Bounty 报告生成",
+    "category": "pentest",
+    "source": "https://github.com/KaQus/claude-code-pentest",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "awesome-offensive-security-skills",
+    "description": "191+ battle-tested cybersecurity skills for AI coding agents — Bug Bounty · Pentesting · Red Team · AI Red Teaming",
+    "category": "pentest",
+    "source": "https://github.com/Ak-cybe/awesome-offensive-security-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "ramibot",
+    "description": "Local-first AI security operations platform — multi-LLM, dynamic red/blue team skill pipeline, MCP tool orchestration",
+    "category": "pentest",
+    "source": "https://github.com/RamiBotAI/ramibot",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "argus-lite",
+    "description": "Autonomous AI pentesting framework — LLM-driven agent with plan trees, attack graphs, 11 security skills",
+    "category": "pentest",
+    "source": "https://github.com/cortexc0de/argus-lite",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "OpenCROW",
+    "description": "Agentic AI orchestration for offensive security and CTF — Codex-ready skills, typed MCP servers, workflow CLIs",
+    "category": "pentest",
+    "source": "https://github.com/02loveslollipop/OpenCROW",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "ai-whitebox-pentest-skill",
+    "description": "Agent Skill for whitebox penetration testing with Burp Suite MCP",
+    "category": "pentest",
+    "source": "https://github.com/gusocegodk/ai-whitebox-pentest-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "hackprobe",
+    "description": "AI-assisted black-box security audit as Claude Code skill — orchestrates 25+ security tools, finds business logic vulns",
+    "category": "pentest",
+    "source": "https://github.com/nuromirzak/hackprobe",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "pentest-report-skill",
+    "description": "Professional penetration testing and bug bounty reporting skill for Claude",
+    "category": "pentest",
+    "source": "https://github.com/Insider77Circle/pentest-report-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "LingXi",
+    "description": "LLM-driven multi-agent framework for automated penetration testing",
+    "category": "pentest",
+    "source": "https://github.com/Assassinticketcollector3649/LingXi",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "llm-sast-scanner",
+    "description": "SAST skill giving AI coding agents structured vulnerability detection across 34 vulnerability classes",
+    "category": "pentest",
+    "source": "https://github.com/SunWeb3Sec/llm-sast-scanner",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "iOSAppReverseEngineering",
+    "description": "The world’s 1st book of very detailed iOS App reverse engineering skills :)",
+    "category": "reverse_engineering",
+    "source": "https://github.com/iosre/iOSAppReverseEngineering",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "android-reverse-engineering-skill",
+    "description": "Claude Code skill to support Android app's reverse engineering",
+    "category": "reverse_engineering",
+    "source": "https://github.com/SimoneAvogadro/android-reverse-engineering-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "ctf-skills",
+    "description": "Agent skills for solving CTF challenges - web exploitation, binary pwn, crypto, reverse engineering, forensics, OSINT, a",
+    "category": "reverse_engineering",
+    "source": "https://github.com/ljagiello/ctf-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "reverse-skills",
+    "description": "Reverse engineering skills for Claude Code",
+    "category": "reverse_engineering",
+    "source": "https://github.com/P4nda0s/reverse-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Incident-Response-Projects-for-Beginners",
+    "description": "Hands-on cybersecurity projects to enhance skills in phishing investigation, malware analysis, network intrusion detecti",
+    "category": "reverse_engineering",
+    "source": "https://github.com/0xrajneesh/Incident-Response-Projects-for-Beginners",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "jshook-skill",
+    "description": "AI-powered JS reverse engineering: deobfuscation, crypto detection, CDP debugging, hook injection, anti-detection",
+    "category": "reverse_engineering",
+    "source": "https://github.com/wuji66dde/jshook-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Common-CTF-Challenges",
+    "description": "Common CTF Challenges is a collection of tools and resources to help individuals improve their Capture the Flag (CTF) sk",
+    "category": "reverse_engineering",
+    "source": "https://github.com/ByamB4/Common-CTF-Challenges",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "IDA-Skill",
+    "description": "使用skill让 AI Agent 像安全分析师一样分析恶意样本",
+    "category": "reverse_engineering",
+    "source": "https://github.com/miunasu/IDA-Skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "spider-king-skill",
+    "description": "Protocol-first reverse engineering skill for turning hostile web clients into pure-protocol Python collectors.",
+    "category": "reverse_engineering",
+    "source": "https://github.com/aoyunyang/spider-king-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "ghidra-re-skill",
+    "description": "Codex Ghidra reverse engineering skill with headless workflows, bug-hunting bundles, and a live bridge for Apple Mach-O",
+    "category": "reverse_engineering",
+    "source": "https://github.com/OwenPawl/ghidra-re-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "CrackMaster",
+    "description": "CCrackMaster is an educational CrackMe project written in C, designed to enhance skills in reverse engineering, code ana",
+    "category": "reverse_engineering",
+    "source": "https://github.com/katya201165/CrackMaster",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "malware-analysis-claude-skills",
+    "description": "Complete Claude skills toolkit for professional malware analysis. 5 specialized skills covering triage, dynamic analysis",
+    "category": "reverse_engineering",
+    "source": "https://github.com/gl0bal01/malware-analysis-claude-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "DeepExtractRuntime",
+    "description": "AI-driven agent runtime for Windows PE binary analysis. Turns IDA Pro decompiled code and SQLite databases produced by D",
+    "category": "reverse_engineering",
+    "source": "https://github.com/marcosd4h/DeepExtractRuntime",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "my-claude-skills",
+    "description": "Binary analysis plugins for Claude Code: angr (static analysis, symbolic execution) and Frida (dynamic instrumentation)",
+    "category": "reverse_engineering",
+    "source": "https://github.com/sandbornm/my-claude-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "BloodCodeCTF",
+    "description": "Blood Code CTF challenge repository! This repository contains all the challenges and their source files from the Capture",
+    "category": "reverse_engineering",
+    "source": "https://github.com/0x4m4/BloodCodeCTF",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "TimeCod",
+    "description": "KotlinCrackMaster is an educational CrackMe project written in Kotlin, designed to enhance skills in reverse engineering",
+    "category": "reverse_engineering",
+    "source": "https://github.com/ALyt10x/TimeCod",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "hello_js_reverse_skill",
+    "description": "JS 逆向与爬虫对抗，Camoufox 反检测浏览器",
+    "category": "reverse_engineering",
+    "source": "https://github.com/WhiteNightShadow/hello_js_reverse_skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "JS Reverse MCP",
+    "description": "JavaScript 逆向工程 MCP 服务器",
+    "category": "reverse_engineering",
+    "source": "https://github.com/zhizhuodemao/js-reverse-mcp",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "FlowDroidSkill",
+    "description": "APK 静态污点分析，检测数据泄露路径",
+    "category": "reverse_engineering",
+    "source": "https://github.com/Tr0e/FlowDroidSkill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "re-skill",
+    "description": "Claude Code skill for reverse engineering retro games — disassemble, annotate, explore",
+    "category": "reverse_engineering",
+    "source": "https://github.com/vgrichina/re-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "epistemic-deconstructor",
+    "description": "Claude skill for reverse engineering systems",
+    "category": "reverse_engineering",
+    "source": "https://github.com/NikolasMarkou/epistemic-deconstructor",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "android-reverse-engineering-claude-skill",
+    "description": "Decompile Android APK, XAPK, AAB, DEX, JAR using jadx",
+    "category": "reverse_engineering",
+    "source": "https://github.com/incogbyte/android-reverse-engineering-claude-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "apple-silicon-internals",
+    "description": "Reverse engineering toolkit for Apple Silicon private APIs. 55+ frameworks",
+    "category": "reverse_engineering",
+    "source": "https://github.com/caiovicentino/apple-silicon-internals",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "iOS-reverse-engineering-claude-skill",
+    "description": "Claude Code skill for extracting, analyzing, reverse engineering iOS apps",
+    "category": "reverse_engineering",
+    "source": "https://github.com/incogbyte/iOS-reverse-engineering-claude-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "『逆向资源区』 - 吾爱破解 - 52pojie.cn",
+    "description": "1 天前&ensp;&#0183;&ensp;『逆向资源区』 收录了在逆向过程中会使用的绝大多数工具，工欲善其事必先利其器，好的工具在逆向破解工程中起到事半功倍的作用。 本区根据工具的作用分成以下几类，分别做以中文解释说 …",
+    "category": "reverse_engineering",
+    "source": "https://www.52pojie.cn/forum-4-1.html",
+    "source_type": "github",
+    "source_label": "吾爱破解"
+  },
+  {
+    "name": "ctf-practice",
+    "description": "Practice your hacking skills with these CTFs",
+    "category": "ctf",
+    "source": "https://github.com/Sharishth/ctf-practice",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "linux-ctfs",
+    "description": "A collection of Linux CTFs to practice your CLI skills",
+    "category": "ctf",
+    "source": "https://github.com/learntocloud/linux-ctfs",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "SecSkills",
+    "description": "收集整理渗透测试、漏洞扫描、代码审计、CTF、逆向、安全研究 等网络安全相关的 Skills和MCP",
+    "category": "ctf",
+    "source": "https://github.com/DaoYiSec/SecSkills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Walkthrough-and-Writeup",
+    "description": "Welcome to my Capture The Flag (CTF) Walkthroughs & Writeups Repository. This repository contains educational, step-by-s",
+    "category": "ctf",
+    "source": "https://github.com/ALMADADALI/Walkthrough-and-Writeup",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "android-h1",
+    "description": "基于 HackerOne 真实报告的移动安全漏洞挖掘",
+    "category": "ctf",
+    "source": "https://github.com/s7safe/android-h1",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "BugBounty-Hunting",
+    "description": "漏洞赏金猎人资源集合",
+    "category": "ctf",
+    "source": "https://github.com/disclose/bug-bounty-platforms",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "ThreatHunt",
+    "description": "ThreatHunt is a PowerShell repository that allows you to train your threat hunting skills.",
+    "category": "threat_modeling",
+    "source": "https://github.com/miladaslaner/ThreatHunt",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "SOC-Analyst-Notes",
+    "description": "Comprehensive SOC Analyst notes covering incident response, threat hunting, SOC workflows, and cybersecurity concepts—pe",
+    "category": "threat_modeling",
+    "source": "https://github.com/MaheshShukla1/SOC-Analyst-Notes",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "SkillWard",
+    "description": "Security scanner for Agent Skills — uncover hidden threats before deployment.",
+    "category": "threat_modeling",
+    "source": "https://github.com/Fangcun-AI/SkillWard",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "cti-expert",
+    "description": "CTI Expert — Cyber Threat Intelligence & OSINT analysis skill for Claude Code. 67+ commands, 35 techniques, no API keys",
+    "category": "threat_modeling",
+    "source": "https://github.com/7onez/cti-expert",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "30-Day-SOC-Analyst-Challenge",
+    "description": "A 30-day hands-on SOC Analyst project simulating real-world cyber attacks using ELK Stack, Mythic C2, osTicket & Elastic",
+    "category": "threat_modeling",
+    "source": "https://github.com/ssultany/30-Day-SOC-Analyst-Challenge",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Offensive-Security-Forensics-Portfolio",
+    "description": "A portfolio demonstrating advanced blue and red team skills, including: SSH MFA implementation, Volatility-based memory",
+    "category": "threat_modeling",
+    "source": "https://github.com/thieveshkar/Offensive-Security-Forensics-Portfolio",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "ghsa-skill-builder",
+    "description": "自动将 GitHub 漏洞库和 HackerOne 报告转化为 Skills",
+    "category": "threat_modeling",
+    "source": "https://github.com/yhy0/ghsa-skill-builder",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Damn-Vulnerable-Bank",
+    "description": "Damn Vulnerable Bank is designed to be an intentionally vulnerable android application. This provides an interface to as",
+    "category": "mobile_security",
+    "source": "https://github.com/rewanthtammana/Damn-Vulnerable-Bank",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Skill-Android-Security-Agent",
+    "description": "构建基于 Skill 的 Android 智能审计 Agent",
+    "category": "mobile_security",
+    "source": "https://github.com/DSFLY100/Skill-Android-Security-Agent",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "mobile-security-learning-resources",
+    "description": "This repository contains list of mobile security related resources that you can use to learn new skills and test existin",
+    "category": "mobile_security",
+    "source": "https://github.com/IgorSasovets/mobile-security-learning-resources",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "mobile-challenges",
+    "description": "This repository houses diverse files and challenges centered around Just Mobile Security. With practical exercises and r",
+    "category": "mobile_security",
+    "source": "https://github.com/justmobilesec/mobile-challenges",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "android-reversing-challenges",
+    "description": "there are some CTF challenges or some other things helping improving android reversing skills.",
+    "category": "mobile_security",
+    "source": "https://github.com/kiyadesu/android-reversing-challenges",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "aguara",
+    "description": "Security scanner for AI agent skills and MCP servers. Static analysis, incident response, no LLM. One binary.   Detectio",
+    "category": "incident_response",
+    "source": "https://github.com/garagon/aguara",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "repo-forensics",
+    "description": "Automated Security scanner for GitHub repos, Agent Skills, Plugins, and MCP servers. 18 scanners. Zero dependencies. Kee",
+    "category": "incident_response",
+    "source": "https://github.com/alexgreensh/repo-forensics",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Digital-Crime-Scene-Challenge",
+    "description": "The object of the Digital Crime Scene Challenge is for participants to use their forensic and investigative skills to fo",
+    "category": "incident_response",
+    "source": "https://github.com/dod-cyber-crime-center/Digital-Crime-Scene-Challenge",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "mini-hids",
+    "description": "轻量级主机入侵检测与日志分析系统，支持封装为AI Agent Skill。/ A lightweight HIDS for Linux, featuring AI-powered log analysis and automated def",
+    "category": "incident_response",
+    "source": "https://github.com/netkr/mini-hids",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "backdoorsandbreaches-socinvader",
+    "description": "🎮 AI-powered solo mode for Backdoors & Breaches. Train incident response skills anytime with an LLM Incident Master. Arc",
+    "category": "incident_response",
+    "source": "https://github.com/0xJaeg3r/backdoorsandbreaches-socinvader",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Digital-Forensic-Training",
+    "description": "The Chupacabra case study was created by the ADEO dfir team due to the lack of resources and applications in the digital",
+    "category": "incident_response",
+    "source": "https://github.com/ADEOSec/Digital-Forensic-Training",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "DevOps-Security-Agent-Skills",
+    "description": "Agent-ready DevOps, security, infrastructure, and compliance knowledge base with 80+ skills across Kubernetes, Terraform",
+    "category": "incident_response",
+    "source": "https://github.com/BagelHole/DevOps-Security-Agent-Skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "agent-infra-security",
+    "description": "Security skills for AI coding agents — incident response for supply chain attacks, credential rotation, IOC detection. W",
+    "category": "incident_response",
+    "source": "https://github.com/makash/agent-infra-security",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "LinuxGun-skill",
+    "description": "Linux 安全应急响应 AI 检查",
+    "category": "incident_response",
+    "source": "https://github.com/sun977/LinuxGun-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Email-OSINT",
+    "description": "自动化电子邮件 OSINT 工具",
+    "category": "incident_response",
+    "source": "https://github.com/martinvigo/emailOSINT",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "incident-report-skill",
+    "description": "Taiwan cybersecurity incident report generator",
+    "category": "incident_response",
+    "source": "https://github.com/OEN-Tech/incident-report-skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "SecOpsAgentKit",
+    "description": "Security operations toolkit for AI coding agents. 25+ skills for CVE research, exploit dev, threat intel",
+    "category": "incident_response",
+    "source": "https://github.com/AgentSecOps/SecOpsAgentKit",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "dfir-skills",
+    "description": "DFIR/SOC skillset for Claude Code — memory forensics, log analysis, network forensics",
+    "category": "incident_response",
+    "source": "https://github.com/Fuzzdkk/dfir-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "raptor",
+    "description": "Raptor turns Claude Code into a general-purpose AI offensive/defensive security agent. By using Claude.md and creating r",
+    "category": "security_tools",
+    "source": "https://github.com/gadievron/raptor",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "slowmist-agent-security",
+    "description": "SlowMist Agent Security Skill: A comprehensive security review framework for AI agents operating in adversarial environm",
+    "category": "security_tools",
+    "source": "https://github.com/slowmist/slowmist-agent-security",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "secureclaw",
+    "description": "SecureClaw - Security Plugin and Skill for OpenClaw OWASP-Aligned",
+    "category": "security_tools",
+    "source": "https://github.com/adversa-ai/secureclaw",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "SecurityClaw",
+    "description": "A modular, skill-based autonomous Security Operations Center (SOC) agent that monitors OpenSearch/Elasticsearch data, bu",
+    "category": "security_tools",
+    "source": "https://github.com/SecurityClaw/SecurityClaw",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "faillapop",
+    "description": "Vulnerable-by-design solidity protocol to help Web3 security enthusiasts practice their skills in an environment closer",
+    "category": "security_tools",
+    "source": "https://github.com/Faillapop/faillapop",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "claude-code-owasp",
+    "description": "Claude Code skill for OWASP security best practices (2025-2026). Includes Top 10:2025, ASVS 5.0, Agentic AI security, an",
+    "category": "security_tools",
+    "source": "https://github.com/agamm/claude-code-owasp",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "www-project-agentic-skills-top-10",
+    "description": "OWASP Foundation web repository",
+    "category": "security_tools",
+    "source": "https://github.com/OWASP/www-project-agentic-skills-top-10",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "web3-bug-bounty-hunting-ai-skills",
+    "description": "18 Claude Code skill files for smart contract security — built from 2,749 Immunefi reports, 681 DeFiHack reproductions,",
+    "category": "security_tools",
+    "source": "https://github.com/shuvonsec/web3-bug-bounty-hunting-ai-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "kernel-vuln-analyzer",
+    "description": "Claude Code skill for Linux kernel vulnerability analysis — from crash log triage to patch verification",
+    "category": "security_tools",
+    "source": "https://github.com/winmin/kernel-vuln-analyzer",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "CEH-Assessments",
+    "description": "A structured portfolio of weekly CEH v13 assessments, vulnerability labs, and ethical hacking documentation to demonstra",
+    "category": "security_tools",
+    "source": "https://github.com/SkillDevloper/CEH-Assessments",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "MalwareAnalysis",
+    "description": "This central repository is crafted for cybersecurity enthusiasts, researchers, and professionals aiming to advance their",
+    "category": "security_tools",
+    "source": "https://github.com/Offensive-Panda/MalwareAnalysis",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "red-team-blue-team-agent-fabric",
+    "description": "466 security tests for AI agent systems — MCP, A2A, x402/L402, decision governance, benchmark integrity, skill supply ch",
+    "category": "security_tools",
+    "source": "https://github.com/msaleme/red-team-blue-team-agent-fabric",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "mobile-security-skills",
+    "description": "A collection of Claude Code and OpenAI Codex Agent Skills for mobile application security testing",
+    "category": "security_tools",
+    "source": "https://github.com/dweinstein/mobile-security-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "htb-writeups",
+    "description": "The most comprehensive Hack The Box writeup collection - 500+ machines, 400+ challenges, interactive knowledge graph, sk",
+    "category": "security_tools",
+    "source": "https://github.com/momenbasel/htb-writeups",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "tirith",
+    "description": "Terminal security for developers and AI agents. Intercepts homograph URLs, pipe-to-shell, ANSI injection, obfuscated pay",
+    "category": "security_tools",
+    "source": "https://github.com/sheeki03/tirith",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "agentguard",
+    "description": "Security guard for AI agents — blocks malicious skills, prevents data leaks, protects secrets. 24 detection rules, runti",
+    "category": "security_tools",
+    "source": "https://github.com/GoPlusSecurity/agentguard",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "SOC-Ressources",
+    "description": "Repository for SOC analysts, queries to investigate, advanced hunting, sites for analysis, malware samples, courses to i",
+    "category": "security_tools",
+    "source": "https://github.com/DXC-0/SOC-Ressources",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "security-skills",
+    "description": "A collection of Claude Code skills that help security teams stay secure",
+    "category": "security_tools",
+    "source": "https://github.com/eth0izzle/security-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "cybersecurity-skills",
+    "description": "Cybersecurity skills for AI coding agents (Claude Code, Cursor, Codex)",
+    "category": "security_tools",
+    "source": "https://github.com/briiirussell/cybersecurity-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "AI-agent-master-cyber-skills-list",
+    "description": "Comprehensive cybersecurity skill pack for AI coding agents — 741 skills",
+    "category": "security_tools",
+    "source": "https://github.com/Njones17/AI-agent-master-cyber-skills-list",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "awesome-ai-agent-skills",
+    "description": "70+ ready-to-use, platform-agnostic AI agent skills",
+    "category": "security_tools",
+    "source": "https://github.com/h4vzz/awesome-ai-agent-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Awesome-OpenClaw",
+    "description": "A carefully curated list of awesome OpenClaw resources",
+    "category": "security_tools",
+    "source": "https://github.com/EthanYolo01/Awesome-OpenClaw",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "ANYDESK-BACKDOOR",
+    "description": "You should never use malware to infiltrate a target system. With the skill of writing and exploiting technical codes, yo",
+    "category": "security_tools",
+    "source": "https://github.com/AiGptCode/ANYDESK-BACKDOOR",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "PayloadsAllTheThings",
+    "description": "Web 安全 payload 和绕过列表",
+    "category": "security_tools",
+    "source": "https://github.com/swisskyrepo/PayloadsAllTheThings",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "BugBountyGuide",
+    "description": "漏洞赏金绕过技巧和 payload",
+    "category": "security_tools",
+    "source": "https://github.com/bugbountyguide/bugbountyguide",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Red-Team-Roadmap",
+    "description": "Red Team Roadmap [defination, job positions, skills, tools]",
+    "category": "security_tools",
+    "source": "https://github.com/soheilsec/Red-Team-Roadmap",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "eJPT",
+    "description": "eJPT is a hands-on, entry-level Red Team certification that simulates skills utilized during real-world engagements.",
+    "category": "security_tools",
+    "source": "https://github.com/e-hakson/eJPT",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Red-Team",
+    "description": "红队/渗透测试工具集合",
+    "category": "security_tools",
+    "source": "https://github.com/yeyintminthuhtut/Awesome-Red-Teaming",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Windows-Exploits",
+    "description": "Windows 提权漏洞集合",
+    "category": "security_tools",
+    "source": "https://github.com/SecWiki/windows-kernel-exploits",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "AD-Attack",
+    "description": "Active Directory 攻击路径",
+    "category": "security_tools",
+    "source": "https://github.com/S1ckB0y1337/Active-Directory-Exploitation-Cheat-Sheet",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Pentest Active Directory",
+    "description": "AD 身份攻击路径评估",
+    "category": "security_tools",
+    "source": "https://github.com/clause-labs/pentest-active-directory",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "pydantic-ai-shields",
+    "description": "Guardrail capabilities for Pydantic AI — cost tracking, prompt injection detection, PII filtering, secret redaction",
+    "category": "security_tools",
+    "source": "https://github.com/vstorm-co/pydantic-ai-shields",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "AgentForensics",
+    "description": "Monitors LLM agent sessions in real time — detects prompt injection across tool outputs, web pages, documents",
+    "category": "security_tools",
+    "source": "https://github.com/aparnaa19/AgentForensics",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "immunity-agent",
+    "description": "Security for AI agents — block dangerous commands, prevent secret leaks, enforce runtime policies across all major agents",
+    "category": "security_tools",
+    "source": "https://github.com/PrismorSec/immunity-agent",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "agentshield",
+    "description": "AI agent security scanner — detects vulnerabilities in agent configs, MCP servers, tool permissions. CLI + GitHub Action",
+    "category": "security_tools",
+    "source": "https://github.com/affaan-m/agentshield",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "hol-guard",
+    "description": "AI antivirus for developer agents — protect Codex, Claude Code, Cursor, plugins, skills, MCP servers before tools run",
+    "category": "security_tools",
+    "source": "https://github.com/hashgraph-online/hol-guard",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "sandboxed.sh",
+    "description": "Safe runtime for autonomous on-chain AI agents — isolated sandboxes, encrypted secrets, OKX read-only security checks",
+    "category": "security_tools",
+    "source": "https://github.com/Th0rgal/sandboxed.sh",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "kontext-cli",
+    "description": "Runtime Security for tool-using AI agents — permissions, credentials, policy enforcement, audit trails",
+    "category": "security_tools",
+    "source": "https://github.com/kontext-security/kontext-cli",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "skillguard",
+    "description": "Security scanner for AI agent skills — detects prompt injection, data exfiltration, malicious payloads",
+    "category": "security_tools",
+    "source": "https://github.com/obielin/skillguard",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "agent-bom",
+    "description": "Open security scanner for AI supply chain — agents, MCP, containers, cloud, GPU, runtime with blast-radius analysis",
+    "category": "security_tools",
+    "source": "https://github.com/msaad00/agent-bom",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "lang-guardx",
+    "description": "Adaptive security for LangChain apps — blocks prompt injection, validates tool calls, filters malicious outputs",
+    "category": "security_tools",
+    "source": "https://github.com/Kpranav-Kp/lang-guardx",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "ai-security-lab",
+    "description": "AI/LLM Security Testing Framework — 50+ jailbreak techniques, prompt injection tools, automated vulnerability scanners",
+    "category": "security_tools",
+    "source": "https://github.com/Panda1847/ai-security-lab",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "skillscan-security",
+    "description": "Security scanner for AI agent skills and MCP — prompt injection, IOC matching, malware detection, ML classifier",
+    "category": "security_tools",
+    "source": "https://github.com/kurtpayne/skillscan-security",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "ai-shield",
+    "description": "LLM security toolkit — prompt injection detection, PII masking, cost tracking, tool policies. <25ms scans",
+    "category": "security_tools",
+    "source": "https://github.com/studiomeyer-io/ai-shield",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "llm-audit",
+    "description": "OWASP LLM Top 10 vulnerability scanner CLI — prompt injection, jailbreaks, data leakage, with fix recommendations",
+    "category": "security_tools",
+    "source": "https://github.com/51p50x/llm-audit",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "lochbot.com",
+    "description": "Prompt Injection Vulnerability Checker — 31 attack patterns across 7 categories, security scoring",
+    "category": "security_tools",
+    "source": "https://github.com/theluckystrike/lochbot.com",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "yula",
+    "description": "Production-ready CLI for adversarial red-teaming of AI systems — prompt injection, jailbreaks, evasion techniques",
+    "category": "security_tools",
+    "source": "https://github.com/0xihsn/yula",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "llm-red-teamer",
+    "description": "Automated prompt injection & jailbreak testing — OWASP LLM Top 10, 43 real-world payloads, risk scoring",
+    "category": "security_tools",
+    "source": "https://github.com/i7-x/llm-red-teamer",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "openclaw-skill-vetter-mcp",
+    "description": "MCP server for security-vetting AI agent extensions — 41 detection rules, 0-100 risk score",
+    "category": "security_tools",
+    "source": "https://github.com/temurkhan13/openclaw-skill-vetter-mcp",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "llm-security-test",
+    "description": "LLM Security Test — AI Safety Evaluation Tool for Jailbreak, Prompt Injection, Harmful Content Detection",
+    "category": "security_tools",
+    "source": "https://github.com/YI597/llm-security-test",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "ai-security-toolkit",
+    "description": "LLM security research toolkit — jailbreak detection, prompt injection testing, adversarial text generation, API fuzzing",
+    "category": "security_tools",
+    "source": "https://github.com/COOLXPLO/ai-security-toolkit",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "CLS-Certify",
+    "description": "Skill 安全检查工具",
+    "category": "security_tools",
+    "source": "https://github.com/CatREFuse/cls-certify",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "SkillGuard",
+    "description": "OpenClaw Skill 安全检查",
+    "category": "security_tools",
+    "source": "https://github.com/Fangwenky/SkillGuard",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "skill-audit",
+    "description": "审计 Skill 定义的安全性、完整性",
+    "category": "security_tools",
+    "source": "https://github.com/dabit3/skill-audit",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "agent-scan",
+    "description": "Security scanner for AI agents, MCP servers and agent skills.",
+    "category": "security_tools",
+    "source": "https://github.com/snyk/agent-scan",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "skill-scanner",
+    "description": "Security Scanner for Agent Skills",
+    "category": "security_tools",
+    "source": "https://github.com/cisco-ai-defense/skill-scanner",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "nova-proximity",
+    "description": "Nova-Proximity is a MCP and Agent Skills security scanner powered with NOVA",
+    "category": "security_tools",
+    "source": "https://github.com/Nova-Hunting/nova-proximity",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "claude-skill-antivirus",
+    "description": "Security scanner for Claude Code Skills — 9 engines detect malicious patterns, data exfiltration, dangerous ops across 7",
+    "category": "security_tools",
+    "source": "https://github.com/claude-world/claude-skill-antivirus",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "skillsentry",
+    "description": "AI Skill Security Scanner",
+    "category": "security_tools",
+    "source": "https://github.com/vythanhtra/skillsentry",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "skillcheck",
+    "description": "Security scanner for Claude SKILL.md files. Detects vulnerabilities before they reach production.",
+    "category": "security_tools",
+    "source": "https://github.com/agentigy/skillcheck",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "SkillSemgrep",
+    "description": "基于 Semgrep 的自然语言漏洞扫描",
+    "category": "security_tools",
+    "source": "https://github.com/KimYx0207/SkillSemgrep",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Nmap",
+    "description": "网络发现和安全审计",
+    "category": "security_tools",
+    "source": "https://github.com/nmap/nmap",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Nmap Pentest Scans",
+    "description": "Nmap 主机发现、端口枚举、NSE 分析",
+    "category": "security_tools",
+    "source": "https://github.com/clause-labs/nmap-pentest-scans",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Security Scanner",
+    "description": "集成 nmap、nuclei 的自动化扫描",
+    "category": "security_tools",
+    "source": "https://github.com/clause-labs/security-scanner",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Nuclei",
+    "description": "基于模板的快速漏洞扫描器",
+    "category": "security_tools",
+    "source": "https://github.com/projectdiscovery/nuclei",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "scv-scan",
+    "description": "Claude Code skill that scans Solidity codebases for security vulnerabilities",
+    "category": "security_tools",
+    "source": "https://github.com/kadenzipfel/scv-scan",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "redhound-arsenal",
+    "description": "76 AI-agent security skills for Kali Linux tools — pentest, red team, forensics",
+    "category": "security_tools",
+    "source": "https://github.com/jph4cks/redhound-arsenal",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "reconFTW",
+    "description": "自动化侦察工具",
+    "category": "security_tools",
+    "source": "https://github.com/six2dez/reconFTW",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "AI-Infra-Guard",
+    "description": "全栈 AI 红队测试平台 — OpenClaw Security Scan, Agent Scan, Skills Scan, MCP scan, LLM jailbreak 评估",
+    "category": "security_tools",
+    "source": "https://github.com/Tencent/AI-Infra-Guard",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "agentic_security",
+    "description": "Agentic LLM Vulnerability Scanner / AI red teaming kit",
+    "category": "security_tools",
+    "source": "https://github.com/msoedov/agentic_security",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "agent-security-scanner-mcp",
+    "description": "Security scanner MCP server for AI coding agents — prompt injection firewall, 1000+ vulnerability rules, AST & taint analysis",
+    "category": "security_tools",
+    "source": "https://github.com/sinewaveai/agent-security-scanner-mcp",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "LLMrecon",
+    "description": "Enterprise-grade LLM security testing framework — OWASP LLM Top 10, advanced prompt injection, jailbreak",
+    "category": "security_tools",
+    "source": "https://github.com/perplext/LLMrecon",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "WonderSuite-Ai-Bug-Bounty",
+    "description": "AI-Powered Offensive Security Research Engine — 90 tools, MITM proxy, stealth browser, autonomous AI agent",
+    "category": "security_tools",
+    "source": "https://github.com/sfr-development/WonderSuite-Ai-Bug-Bounty",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "agent_asteroid",
+    "description": "Agent responsible for detecting remote vulnerabilities, a robust scanner",
+    "category": "security_tools",
+    "source": "https://github.com/Ostorlab/agent_asteroid",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "DVAI",
+    "description": "Damn Vulnerable AI — hands-on AI security training across 12 categories, OWASP LLM Top 10, works 100% offline",
+    "category": "security_tools",
+    "source": "https://github.com/offensiveai26/DVAI",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "supply-chain-defense-skills",
+    "description": "Reusable Security Skills for AI Coding Agents — protect against supply chain attacks in npm, PyPI, etc.",
+    "category": "security_tools",
+    "source": "https://github.com/verobit-llj/supply-chain-defense-skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Best-LwM2M-Agentic-Skills",
+    "description": "Worlds most comprehensive OMA LwM2M (IoT) expert skill for Claude",
+    "category": "security_tools",
+    "source": "https://github.com/svdwalt007/Best-LwM2M-Agentic-Skills",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "Claude-Code-CyberSecurity-Skill",
+    "description": "Comprehensive collection of 15 Claude Code Skills for cybersecurity",
+    "category": "security_tools",
+    "source": "https://github.com/Masriyan/Claude-Code-CyberSecurity-Skill",
+    "source_type": "github",
+    "source_label": "github"
+  },
+  {
+    "name": "1earn",
+    "description": "ffffffff0x 团队安全知识框架：Web/工控/取证/应急/后渗透",
+    "category": "security_tools",
+    "source": "https://github.com/ffffffff0x/1earn",
+    "source_type": "github",
+    "source_label": "GitHub"
+  },
+  {
+    "name": "Awesome-Infosec",
+    "description": "信息安全课程和培训资源精选",
+    "category": "security_tools",
+    "source": "https://github.com/ziadmi/Awesome-Infosec",
+    "source_type": "github",
+    "source_label": "GitHub"
+  },
+  {
+    "name": "HackTheBox",
+    "description": "CTF 和渗透测试练习资源",
+    "category": "security_tools",
+    "source": "https://github.com/hash3liZer/OffensiveSecurity",
+    "source_type": "github",
+    "source_label": "GitHub"
+  },
+  {
+    "name": "[ScanDomain](https://scandomain.cyayaa.com/)",
+    "description": "🔥 免费在线子域名扫描神器 — 一键发现隐藏资产、子域名接管检测、网站指纹识别，渗透测试前必备信息收集工具",
+    "category": "security_tools",
+    "source": "https://scandomain.cyayaa.com/",
+    "source_type": "github",
+    "source_label": "立即使用 →"
+  },
+  {
+    "name": "[KvioAI](https://kvioai.cloud/)",
+    "description": "🚀 AI API 聚合平台 — 一个 Key 接入 Claude/GPT/Gemini 等 50+ 主流模型，国内直连无需翻墙，价格比官方更优",
+    "category": "security_tools",
+    "source": "https://kvioai.cloud/",
+    "source_type": "github",
+    "source_label": "立即注册 →"
+  },
+  {
+    "name": "[CatFK 代充](https://catfk.com/shop/3RNETX18)",
+    "description": "💳 ChatGPT Plus/额度代充 — 绝对正规渠道，30天质保，比当前市面所有代充都便宜，安全无忧",
+    "category": "security_tools",
+    "source": "https://catfk.com/shop/3RNETX18",
+    "source_type": "github",
+    "source_label": "立即前往 →"
+  }
+]

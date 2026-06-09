@@ -1,0 +1,86 @@
+name: Cloud Security Assessment
+description: >
+  Multi-cloud security assessment playbook for AWS, GCP, and Azure
+  environments. Audits IAM, storage, network policies, serverless
+  functions, and container registries. Requires cloud credentials
+  with read-only audit permissions.
+author:
+  name: Pentest-Swarm AI
+  github: Armur-Ai
+version: 1.0.0
+tags: [cloud, aws, gcp, azure, authorized-only]
+
+variables:
+  scope_file:
+    type: string
+    required: true
+    description: Path to the signed scope YAML authorising this engagement
+  cloud_provider:
+    type: string
+    required: true
+    description: "aws | gcp | azure | multi"
+  regions:
+    type: string
+    required: false
+    description: Comma-separated region list (default = all active regions)
+
+phases:
+  - name: iam_audit
+    tools:
+      - name: nuclei
+        options:
+          templates:
+            - "cloud/iam/"
+            - "cloud/privilege-escalation/"
+    post_analysis: |
+      Audit IAM roles, policies, and service accounts. Flag overly
+      permissive principals, missing MFA, unused credentials, and
+      privilege escalation paths. Cross-account trust chains are
+      high-severity by default.
+
+  - name: storage_audit
+    tools:
+      - name: nuclei
+        options:
+          templates:
+            - "cloud/storage/"
+            - "exposures/cloud-storage/"
+    post_analysis: |
+      Enumerate S3 buckets, GCS buckets, Azure Blob containers.
+      Flag public-read / public-write ACLs, missing encryption,
+      and versioning gaps.
+
+  - name: network_audit
+    tools:
+      - name: nuclei
+        options:
+          templates:
+            - "cloud/network/"
+            - "cloud/firewall/"
+    post_analysis: |
+      Audit security groups, VPC ACLs, firewall rules. Flag 0.0.0.0/0
+      ingress on sensitive ports (22, 3389, 5432, 6379, 27017).
+      Check for exposed management interfaces.
+
+  - name: serverless_audit
+    tools:
+      - name: nuclei
+        options:
+          templates:
+            - "cloud/serverless/"
+            - "cloud/functions/"
+    post_analysis: |
+      Audit Lambda / Cloud Functions / Azure Functions for over-privileged
+      execution roles, exposed environment variables (secrets), and
+      missing function-level auth.
+
+  - name: container_registry
+    tools:
+      - name: nuclei
+        options:
+          templates:
+            - "cloud/container/"
+            - "cloud/registry/"
+    post_analysis: |
+      Scan container registries (ECR, GCR, ACR) for public images,
+      outdated base images with known CVEs, and exposed build secrets.

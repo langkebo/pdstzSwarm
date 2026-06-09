@@ -1,0 +1,91 @@
+name: Web Application Pentest
+description: >
+  Comprehensive web application penetration testing playbook covering
+  OWASP Top 10 vulnerabilities, authentication/authorization flaws,
+  business logic bugs, and API security. Requires a signed scope file.
+author:
+  name: Pentest-Swarm AI
+  github: Armur-Ai
+version: 1.0.0
+tags: [web, owasp, authorized-only, application]
+
+variables:
+  scope_file:
+    type: string
+    required: true
+    description: Path to the signed scope YAML authorising this engagement
+  target_url:
+    type: string
+    required: true
+  auth_token:
+    type: string
+    required: false
+    description: Bearer token or session cookie for authenticated testing
+  depth:
+    type: string
+    default: standard
+    description: "quick | standard | deep — controls crawl depth and template count"
+
+phases:
+  - name: recon_crawl
+    tools:
+      - name: httpx
+        options:
+          follow_redirects: true
+          threads: 50
+      - name: katana
+        options:
+          depth: 3
+          js_discovery: true
+    post_analysis: |
+      Crawl the application to discover endpoints, parameters, JS files,
+      and hidden paths. Enumerate the attack surface systematically.
+
+  - name: tech_fingerprint
+    tools:
+      - name: httpx
+        options:
+          tech_detect: true
+          favicon_hash: true
+    post_analysis: |
+      Identify the tech stack (framework, CMS, WAF, CDN). Cross-reference
+      versions against known CVEs. Flag outdated components immediately.
+
+  - name: vuln_scan
+    tools:
+      - name: nuclei
+        options:
+          severity: [critical, high, medium]
+          templates:
+            - "cves/"
+            - "vulnerabilities/"
+            - "misconfiguration/"
+            - "exposures/"
+    post_analysis: |
+      Run targeted vulnerability templates. Prioritize auth-bypass,
+      injection, and deserialization findings. Review medium-severity
+      for chaining potential.
+
+  - name: injection_test
+    tools:
+      - name: nuclei
+        options:
+          templates:
+            - "injections/"
+            - "generic-detections/"
+    post_analysis: |
+      Deep-dive on SQLi, XSS, SSTI, command injection, XXE, and SSRF.
+      Flag any reflection or error leakage for manual follow-up.
+
+  - name: auth_test
+    tools:
+      - name: nuclei
+        options:
+          templates:
+            - "auth-bypass/"
+            - "default-logins/"
+            - "exposed-panels/"
+            - "misconfiguration/jwt/"
+    post_analysis: |
+      Test authentication flows: JWT weaknesses, IDOR patterns, privilege
+      escalation vectors, default credentials, and session management flaws.

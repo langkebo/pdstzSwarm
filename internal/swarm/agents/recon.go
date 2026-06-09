@@ -9,6 +9,7 @@ import (
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/scope"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/swarm/blackboard"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/swarm/tuning"
+	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/tools"
 	"github.com/google/uuid"
 )
 
@@ -57,7 +58,7 @@ func (a *ReconAgent) MaxConcurrency() int { return a.parallel }
 // Handle runs recon against the target and fans out findings to the blackboard.
 func (a *ReconAgent) Handle(ctx context.Context, f blackboard.Finding, board blackboard.Board) error {
 	plan := a.recon.PlanRecon(f.Target)
-	surface, err := a.recon.Execute(ctx, plan, a.scopeDef, a.campaignID)
+	surface, err := a.recon.Execute(ctx, plan, a.scopeDef, a.campaignID, tools.Options{})
 	if err != nil {
 		return fmt.Errorf("recon execute: %w", err)
 	}

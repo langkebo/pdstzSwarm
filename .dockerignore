@@ -24,11 +24,22 @@ drafts/
 banner/
 docs/
 
-# Web dashboard build output (built separately)
+# The web build is produced inside the container by stage 1
+# (web-build). Sending the local `web/node_modules` and
+# `web/.next` would inflate the build context for no reason.
 web/node_modules
 web/.next
 web/dist
 web/build
+# Don't ship the static export either — the embed picks it up
+# fresh from stage 1.
+web/out
+
+# The webfs/out directory is the *target* of the embed. Local
+# edits to internal/webfs/out/ (other than via the Dockerfile)
+# would only get overwritten, so exclude it.
+internal/webfs/out/*
+!internal/webfs/out/index.html
 
 # Workshop / training fixtures (huge, not needed for the binary)
 training/

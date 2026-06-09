@@ -1,62 +1,439 @@
-version: "3.9"
+# Pentest Swarm AI — integrated deployment (production)
+#
+# This compose brings up the full stack: API + dashboard (single
+# image, web is embedded into the Go binary) + Postgres +
+# Redis + Ollama. Healthchecks on every service drive the
+# `depends_on: service_healthy` startup ordering, and named
+# volumes persist data across `docker compose down`.
+#
+# Quick start
+# -----------
+#
+#   cp .env.example .env       # fill in ORCHESTRATOR_API_KEY etc.
+#   docker compose -f deploy/docker-compose.yml up -d --build
+#   open http://localhost:8080
+#
+# That's it — the dashboard, API, and MCP server are all
+# reachable on a single port (8080). Postgres / Redis / Ollama
+# are internal to the network; the operator can publish their
+# ports too (commented in the file) for external debugging.
+#
+# What's persistent
+# -----------------
+#
+#   pgdata           — Postgres data (incl. RLS, vectors)
+#   redis_data       — Redis snapshots + AOF
+#   ollama_models    — pulled LLM weights (downloaded once)
+#   pentest_home     — /home/pentester (license, installation_id)
+#   pentest_reports  — /reports (scan/report outputs)
+#   pentest_nuclei   — /home/pentester/.nuclei (template cache)
+#
+# What's ephemeral
+# ----------------
+#
+#   Container logs (use `docker compose logs` before stopping)
+#   Any `/tmp` files created by tooling during a scan
+#
+# Production hardening notes
+# --------------------------
+#
+# - For a real deployment, set strong POSTGRES_PASSWORD and
+#   LICENSE_PUB_KEY, and remove the `ports:` mapping from
+#   postgres/redis/ollama (only the swarm should be public).
+# - Put a TLS terminator (Caddy, Traefik, nginx) in front of
+#   port 8080 for HTTPS. The Caddy config in deploy/Caddyfile
+#   is the supported recipe.
+# - The Ollama service needs ≥ 8 GB RAM for qwen2.5:7b; bump
+#   the `deploy.resources.limits.memory` if you go bigger.
+
+name: pentestswarm
+
+x-pentestswarm-base: &pentestswarm-base
+  build:
+    # Path is relative to this compose file: deploy/../..
+    # = the project root (one level up from deploy/).
+    # The Dockerfile lives at the project root, not in
+    # the parent of the project root.
+    context: ..
+    dockerfile: Dockerfile
+  image: pentest-swarm-ai:local
+  restart: unless-stopped
+  # Defaults that every service can override.
+  #
+  # Path is relative to THIS compose file: `deploy/../.env`
+  # = the project root's `.env` (one level up from
+  # `deploy/`). The operator drops a single .env at the
+  # project root that covers both the API and the
+  # migration runner — see .env.example for the full
+  # surface.
+  env_file:
+    - ../.env
+  networks:
+    - psa_internal
 
 services:
+
+  # ─────────────────────────────────────────────────────────────
+  # API + dashboard. Single image; web is embedded in the Go
+  # binary. /api/v1/*, /healthz, /readyz, /metrics, /ws/* are
+  # served by the API; everything else falls through to the
+  # embedded file server (Next.js static export).
+  # ─────────────────────────────────────────────────────────────
   pentestswarm:
-    build:
-      context: ../..
-      dockerfile: deploy/docker/Dockerfile
+    <<: *pentestswarm-base
+    container_name: psa-swarm
+    hostname: psa-swarm
+    # The Dockerfile's HEALTHCHECK directive drives
+    # `depends_on: service_healthy` below. We duplicate it
+    # here as `healthcheck:` so `docker inspect` and
+    # `docker compose ps` report a single source of truth.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        # /healthz: liveness — 200 unless the process is dying
+        # /readyz:  readiness — 200 once orchestrator is wired
+        - "curl -fsS http://localhost:${PSA_API_PORT:-8081}/healthz || exit 1"
+      interval: 10s
+      timeout: 3s
+      start_period: 30s
+      retries: 3
     ports:
-      - "8080:8080"
+      # PSA_API_PORT (host) → PSA_API_PORT (container).
+      # Defaults to 8081. 8080 is the most-occupied dev port
+      # in the world; 8081 is the canonical "8080 is taken"
+      # choice. Override with PSA_API_PORT=9090 in the shell
+      # or .env file.
+      - "${PSA_API_PORT:-8081}:${PSA_API_PORT:-8081}"
     environment:
+      # PENTESTSWARM_* env vars override the on-disk config.
+      # See config.example.yaml for the full surface.
+      #
+      # The two `REQUIRED_*` placeholders for the LLM key
+      # and Postgres password are intentionally NOT
+      # interpolated from env_file. compose's `${VAR:?...}`
+      # syntax checks the *shell* environment, not the
+      # service's env_file — so leaving `ORCHESTRATOR_API_KEY`
+      # unset in the shell but providing it in .env would
+      # still fail. We instead pass the env_file value
+      # directly (PENTESTSWARM_ORCHESTRATOR_API_KEY expands
+      # to "" if missing) and let the bootstrapLicense /
+      # db.Connect code fail at startup with a clear error
+      # message. The `REQUIRED_*` env entries below are
+      # documentation helpers; the binary will read its
+      # own config and complain if ORCHESTRATOR_API_KEY is
+      # empty.
+      PENTESTSWARM_SERVER_HOST: "0.0.0.0"
+      PENTESTSWARM_SERVER_PORT: "${PSA_API_PORT:-8081}"
+      # ─── TLS / HTTPS ──────────────────────────────────────
+      # Set SERVER_USE_SSL=true in .env to terminate TLS in
+      # the swarm binary itself (no nginx/caddy needed).
+      # The cert + key paths point inside the container;
+      # the bind-mount below maps a host directory onto
+      # /etc/pentestswarm/ssl so operators can drop in
+      # self-signed or Let's Encrypt files without
+      # rebuilding the image. Naming follows ptagent's
+      # SERVER_SSL_CRT / SERVER_SSL_KEY convention.
+      PENTESTSWARM_SERVER_USE_SSL: ${SERVER_USE_SSL:-false}
+      PENTESTSWARM_SERVER_SSLCRT: ${SERVER_SSL_CRT:-/etc/pentestswarm/ssl/server.crt}
+      PENTESTSWARM_SERVER_SSLKEY: ${SERVER_SSL_KEY:-/etc/pentestswarm/ssl/server.key}
       PENTESTSWARM_DATABASE_HOST: postgres
-      PENTESTSWARM_DATABASE_PASSWORD: pentestswarm
+      PENTESTSWARM_DATABASE_PORT: "5432"
+      PENTESTSWARM_DATABASE_USER: ${POSTGRES_USER:-pentestswarm}
+      PENTESTSWARM_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-}
+      PENTESTSWARM_DATABASE_NAME: ${POSTGRES_DB:-pentestswarm}
+      PENTESTSWARM_DATABASE_SSLMODE: disable
       PENTESTSWARM_REDIS_HOST: redis
-      PENTESTSWARM_ORCHESTRATOR_PROVIDER: ollama
-      PENTESTSWARM_ORCHESTRATOR_ENDPOINT: http://ollama:11434
+      PENTESTSWARM_REDIS_PORT: "6379"
+      # LLM provider is the orchestrator (decision-maker).
+      # Per-agent overrides are still read from config.yaml.
+      PENTESTSWARM_ORCHESTRATOR_PROVIDER: ${ORCHESTRATOR_PROVIDER:-claude}
+      PENTESTSWARM_ORCHESTRATOR_MODEL: ${ORCHESTRATOR_MODEL:-claude-sonnet-4-6}
+      PENTESTSWARM_ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}
+      PENTESTSWARM_ORCHESTRATOR_ENDPOINT: ${ORCHESTRATOR_ENDPOINT:-}
+      # LLM embeddings — `noop` for OSS, `openai` for production.
+      PENTESTSWARM_LLM_EMBEDDINGS_PROVIDER: ${EMBEDDINGS_PROVIDER:-noop}
+      PENTESTSWARM_LLM_EMBEDDINGS_API_KEY: ${EMBEDDINGS_API_KEY:-}
+      PENTESTSWARM_LLM_EMBEDDINGS_MODEL: ${EMBEDDINGS_MODEL:-}
+      PENTESTSWARM_LLM_EMBEDDINGS_ENDPOINT: ${EMBEDDINGS_ENDPOINT:-}
+      # P5+ 商业化 — see internal/license for the Ed25519 flow.
+      PENTESTSWARM_COMMERCIAL_LICENSE_KEY: ${LICENSE_KEY:-}
+      PENTESTSWARM_COMMERCIAL_PUBLIC_KEY: ${LICENSE_PUB_KEY:-}
+      PENTESTSWARM_COMMERCIAL_MULTI_TENANT: ${MULTI_TENANT:-false}
+      # CORS — explicit allow-list; empty = legacy "*".
+      PENTESTSWARM_COMMERCIAL_CORS_ORIGINS: ${CORS_ORIGINS:-}
+      # P5+ embedding async + redis cache — opt in via .env.
+      PENTESTSWARM_LLM_EMBEDDINGS_ASYNC_ENABLED: ${EMBEDDINGS_ASYNC_ENABLED:-false}
+      PENTESTSWARM_LLM_EMBEDDINGS_REDIS_ENABLED: ${EMBEDDINGS_REDIS_ENABLED:-true}
+      PENTESTSWARM_LLM_EMBEDDINGS_REDIS_ADDR: redis:6379
+      PENTESTSWARM_LLM_EMBEDDINGS_REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      # OAuth (optional) — leave empty to disable.
+      PS_AUTH_OAUTH_GOOGLE_CLIENT_ID: ${OAUTH_GOOGLE_CLIENT_ID:-}
+      PS_AUTH_OAUTH_GOOGLE_CLIENT_SECRET: ${OAUTH_GOOGLE_CLIENT_SECRET:-}
+      PS_AUTH_OAUTH_GITHUB_CLIENT_ID: ${OAUTH_GITHUB_CLIENT_ID:-}
+      PS_AUTH_OAUTH_GITHUB_CLIENT_SECRET: ${OAUTH_GITHUB_CLIENT_SECRET:-}
+      # Base URL for OAuth callback resolution. Must use
+      # the same port as the swarm's publish (8081).
+      PSA_PUBLIC_BASE_URL: ${PSA_PUBLIC_BASE_URL:-http://localhost:8081}
+    volumes:
+      # Persistent scan/report output. Bind-mount or named vol.
+      - pentest_reports:/reports
+      # License / installation_id persistence across restarts.
+      - pentest_home:/home/pentester/.pentestswarm
+      # Nuclei template cache; survive `nuclei -ut` rebuilds.
+      - pentest_nuclei:/home/pentester/.nuclei
+      # TLS cert + key for HTTPS. Host directory `deploy/ssl/`
+      # is bind-mounted read-only into the container. Drop
+      # `server.crt` and `server.key` in there and flip
+      # SERVER_USE_SSL=true. Empty / missing files fall
+      # through to plain HTTP (see api/server.go:probeTLS).
+      - ${PSA_SSL_DIR:-./ssl}:/etc/pentestswarm/ssl:ro
+    # Wait for the data plane to be ready before the API even
+    # starts. This avoids the 30s of "connection refused" logs
+    # during a cold deploy. The MCP service below uses the
+    # same pattern.
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: unless-stopped
+    # The pentestswarm image is the toolbox — nmap, nuclei, etc.
+    # are inside it. Naabu's raw-socket port scan needs
+    # CAP_NET_RAW. We grant it by default because docker
+    # composes for pentest use cases. Remove this line for
+    # an API-only deployment that doesn't run scans.
+    cap_add:
+      - NET_RAW
+    # Log rotation: 10 MB per file, 3 files retained, so a
+    # misbehaving scan doesn't fill /var/lib/docker.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Memory limit: 4 GB default. Raise for big campaigns.
+    # The cap on nuclei parallelism comes from the config
+    # YAML, not Docker; this is just a hard ceiling.
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 512M
 
+  # ─────────────────────────────────────────────────────────────
+  # Postgres + pgvector. Single image; we pin a specific
+  # pgvector minor version so the operators' saved RLS
+  # policies don't break on a major version bump.
+  # ─────────────────────────────────────────────────────────────
   postgres:
     image: pgvector/pgvector:pg16
+    container_name: psa-postgres
+    hostname: psa-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: pentestswarm
-      POSTGRES_PASSWORD: pentestswarm
-      POSTGRES_DB: pentestswarm
-    ports:
-      - "5432:5432"
+      # Postgres reads its password from the env. We don't use
+      # `${POSTGRES_PASSWORD:?...}` here because compose's `:?`
+      # syntax checks the shell env, not env_file — and we
+      # accept that on a fresh deploy the password might be
+      # empty (the swarm's healthcheck will then fail and
+      # prevent `psa-swarm` from starting anyway).
+      #
+      # Default: `pentestswarm_dev` so a one-command
+      # `docker compose up` still works without a real
+      # `.env`. Operators MUST override POSTGRES_PASSWORD
+      # before going to production; the binary's startup
+      # validation will catch a missing override.
+      POSTGRES_USER: ${POSTGRES_USER:-pentestswarm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pentestswarm_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-pentestswarm}
+      # Postgres tuning for a small pentest workload. The
+      # defaults are tuned for bare metal, not containers.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    # Keep postgres off the public network. Uncomment for
+    # psql access from the host.
+    # ports:
+    #   - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # 000009_tenants.sql etc. are applied at startup by
+      # `db.Migrate` running inside the swarm image. We don't
+      # run them via an init container because the binary
+      # knows the right order and which ones are already
+      # applied.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pentestswarm"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pentestswarm} -d ${POSTGRES_DB:-pentestswarm}"]
       interval: 5s
-      timeout: 5s
-      retries: 5
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+    networks:
+      - psa_internal
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
+  # ─────────────────────────────────────────────────────────────
+  # Redis — caching layer for the async embedder pool
+  # (P5+ Embedding async). Also the canonical rate-limiter /
+  # short-lived state for any future cluster mode.
+  # ─────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    container_name: psa-redis
+    hostname: psa-redis
+    restart: unless-stopped
+    # Password-protect Redis. Empty password = no auth (dev
+    # only). In production, set REDIS_PASSWORD in .env and
+    # the swarm container passes it through to the embedder
+    # via PENTESTSWARM_LLM_EMBEDDINGS_REDIS_PASSWORD.
+    #
+    # We split the command into static (always-on) and
+    # dynamic (password conditional) parts. The conditional
+    # is done via a shell wrapper so docker-compose's
+    # `${VAR:+...}` expansion doesn't leak an empty
+    # argument into redis-server's argv (which would error
+    # out at startup with "wrong number of arguments").
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        ARGS="--save 60 1 --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru"
+        if [ -n "$${REDIS_PASSWORD}" ]; then
+          ARGS="$${ARGS} --requirepass \"$${REDIS_PASSWORD}\""
+        fi
+        echo "[redis-launch] $$ARGS"
+        exec redis-server $$ARGS
+    # Uncomment for redis-cli access from the host.
+    # ports:
+    #   - "6379:6379"
+    volumes:
+      - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test:
+        - CMD-SHELL
+        # redis-cli returns 0 only when PONG succeeds.
+        # When REDIS_PASSWORD is set, append `-a` so the
+        # healthcheck exercises the auth path; otherwise
+        # the command would fail with NOAUTH.
+        - 'redis-cli $([ -n "$${REDIS_PASSWORD}" ] && echo -a "$${REDIS_PASSWORD}" --no-auth-warning) ping | grep -q PONG'
       interval: 5s
-      timeout: 5s
+      timeout: 3s
       retries: 5
+    networks:
+      - psa_internal
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 320M
 
+  # ─────────────────────────────────────────────────────────────
+  # Ollama — local LLM runtime. Optional: the swarm uses the
+  # provider configured in PENTESTSWARM_ORCHESTRATOR_PROVIDER.
+  # Set ORCHESTRATOR_PROVIDER=ollama in .env to point at this
+  # service. Disable with `docker compose --profile no-llm up`.
+  #
+  # First-boot model pulls:
+  #   docker compose exec ollama ollama pull qwen2.5:7b
+  #   docker compose exec ollama ollama pull nomic-embed-text
+  # ─────────────────────────────────────────────────────────────
   ollama:
     image: ollama/ollama:latest
+    container_name: psa-ollama
+    hostname: psa-ollama
+    restart: unless-stopped
+    profiles:
+      - llm
+      - default
+    # The Ollama daemon listens on 11434. Expose for local
+    # debugging (ollama list, ollama pull from the host).
     ports:
       - "11434:11434"
     volumes:
       - ollama_models:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:11434/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - psa_internal
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Ollama can consume a lot of RAM (qwen2.5:7b is ~5 GB).
+    # We reserve 8 GB to be safe; raise this for bigger
+    # models (qwen2.5:32b wants 24 GB).
     deploy:
       resources:
+        limits:
+          memory: 16G
         reservations:
           memory: 8G
 
+  # ─────────────────────────────────────────────────────────────
+  # Migration runner. Runs db.Migrate (in-process; reads
+  # internal/db/migrations/*.sql via embed) once and exits.
+  # depends_on: service_healthy on postgres + the swarm
+  # itself so we never race the schema application.
+  #
+  # This is a one-shot: it doesn't need restart or long-
+  # running resources. `docker compose run --rm migrate`
+  # re-runs it on demand.
+  # ─────────────────────────────────────────────────────────────
+  migrate:
+    <<: *pentestswarm-base
+    container_name: psa-migrate
+    profiles:
+      - migrate
+    # The same image, but invoked as a one-shot. We use
+    # `serve --help` here ONLY to keep the entrypoint simple
+    # — the actual command below overrides it. The image
+    # is set up so `pentestswarm doctor` runs the schema
+    # check (and creates schema_migrations if missing) on
+    # a fresh DB.
+    command: ["migrate", "--auto"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - psa_internal
+    restart: "no"
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "1"
+
 volumes:
   pgdata:
+    name: psa_pgdata
+  redis_data:
+    name: psa_redis_data
   ollama_models:
+    name: psa_ollama_models
+  pentest_reports:
+    name: psa_reports
+  pentest_home:
+    name: psa_home
+  pentest_nuclei:
+    name: psa_nuclei
+
+networks:
+  psa_internal:
+    name: psa_internal
+    driver: bridge

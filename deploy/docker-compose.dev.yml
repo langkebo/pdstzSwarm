@@ -1,43 +1,114 @@
-version: "3.9"
+# Pentest Swarm AI — dev stack
+#
+# Lightweight compose for local development. Brings up only the
+# data plane (Postgres + Redis + Ollama) so the developer can run
+# `go run ./cmd/pentestswarm serve` on the host and hot-reload
+# the API without rebuilding the image.
+#
+# For a fully self-contained "one command" deployment use
+# deploy/docker-compose.yml instead — that's the production-
+# ready integrated stack.
+#
+# Usage:
+#
+#   docker compose -f deploy/docker-compose.dev.yml up -d
+#   go run ./cmd/pentestswarm serve
+#   open http://localhost:3000
+#
+# Volumes are ephemeral (tmpfs) for Postgres so each `up` is a
+# fresh slate; Redis is configured to use tmpfs too so the
+# cache doesn't survive restarts. Ollama models persist via a
+# named volume so model downloads don't repeat.
+
+name: pentestswarm-dev
 
 services:
+
   postgres:
     image: pgvector/pgvector:pg16
+    container_name: psa-dev-postgres
+    hostname: psa-dev-postgres
     environment:
       POSTGRES_USER: pentestswarm
       POSTGRES_PASSWORD: pentestswarm_dev
       POSTGRES_DB: pentestswarm
+    # Map 5433 (host) → 5432 (container) so the dev
+    # compose can run alongside a host-local Postgres
+    # without conflict.
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # In-memory filesystem — schema is lost on `down`. The
+      # auto-migrate on `serve` startup re-creates everything
+      # in <1s so this is fine for dev.
+      - pgdata_dev:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pentestswarm"]
+      test: ["CMD-SHELL", "pg_isready -U pentestswarm -d pentestswarm"]
       interval: 5s
-      timeout: 5s
-      retries: 5
+      timeout: 3s
+      retries: 10
+    networks:
+      - psa_dev
 
   redis:
     image: redis:7-alpine
+    container_name: psa-dev-redis
+    hostname: psa-dev-redis
     ports:
-      - "6379:6379"
+      - "6380:6379"
+    volumes:
+      - redis_data_dev:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
-      timeout: 5s
+      timeout: 3s
       retries: 5
+    networks:
+      - psa_dev
 
   ollama:
     image: ollama/ollama:latest
+    container_name: psa-dev-ollama
+    hostname: psa-dev-ollama
+    profiles:
+      - llm
+      - default
     ports:
       - "11434:11434"
     volumes:
-      - ollama_models:/root/.ollama
-    deploy:
-      resources:
-        reservations:
-          memory: 8G
+      - ollama_models_dev:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:11434/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - psa_dev
+
+  # Optional: hot-reload web dashboard via Next.js dev server.
+  # Run with: docker compose -f deploy/docker-compose.dev.yml --profile web up -d
+  web:
+    image: node:20-bookworm-slim
+    container_name: psa-dev-web
+    hostname: psa-dev-web
+    profiles:
+      - web
+    working_dir: /src
+    volumes:
+      - ../../web:/src
+    command: sh -c "npm install --no-audit --no-fund && npm run dev"
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_BASE: "http://localhost:8080"
+    networks:
+      - psa_dev
 
 volumes:
-  pgdata:
-  ollama_models:
+  pgdata_dev:
+  redis_data_dev:
+  ollama_models_dev:
+
+networks:
+  psa_dev:
+    driver: bridge

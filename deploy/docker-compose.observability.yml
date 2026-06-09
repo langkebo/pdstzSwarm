@@ -1,0 +1,116 @@
+version: "3.9"
+
+# Observability stack (P5+ 观测): Prometheus + pg_exporter +
+# Grafana. This file is **opt-in**: running `docker compose -f
+# deploy/docker-compose.observability.yml up -d` brings up the
+# observability plane alongside the main app compose (deploy/
+# docker-compose.yml) on a separate network.
+#
+# Topology
+# --------
+#
+#   prometheus (9090)  →  scrapes  →  pentestswarm:8080/metrics
+#                                     pg_exporter:9187/metrics
+#   grafana    (3000)  →  queries  →  prometheus
+#
+# Quick start
+# -----------
+#
+#   1. Start the main stack (in another terminal):
+#        docker compose -f deploy/docker-compose.yml up -d
+#
+#   2. Start observability:
+#        docker compose -f deploy/docker-compose.observability.yml up -d
+#
+#   3. Open:
+#        - Prometheus:  http://localhost:9090
+#        - Grafana:     http://localhost:3000  (admin / admin)
+#        - /metrics:    http://localhost:8080/metrics
+#        - pg_exporter: http://localhost:9187/metrics
+#
+# The pentestswarm container is *not* started by this compose;
+# it's expected to be already running on the host network or
+# on a shared `psa_default` network. If you'd rather start both
+# together, see deploy/docker-compose.full.yml.
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    container_name: psa-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+      - --storage.tsdb.retention.size=10GB
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    # Connect to the same network the main app compose creates.
+    # If the main compose is `deploy/docker-compose.yml` (project
+    # name "deploy"), its network is `deploy_default`. Override
+    # the project name (or the network name) if needed.
+    networks:
+      - psa_observability
+    restart: unless-stopped
+
+  pg_exporter:
+    # Postgres metrics exporter. We use quay.io because the
+    # `wrouesnel/postgres_exporter` image is the de-facto
+    # standard and the one ptagent bundles.
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: psa-pg-exporter
+    environment:
+      # Standard libpq environment variables. The exporter
+      # composes them into a single DSN at startup.
+      DATA_SOURCE_URI: postgres:5432
+      DATA_SOURCE_USER: pentestswarm
+      DATA_SOURCE_PASS: pentestswarm
+      DATA_SOURCE_DB: pentestswarm
+      # Auto-discover instance-level metrics (one row per DB).
+      PG_EXPORTER_AUTO_DISCOVER_DATABASES: "true"
+      # Don't expose per-table metrics by default — they're
+      # expensive on ptagent-class blackboards.
+      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
+      PG_EXPORTER_INCLUDE_TBL_DATISTHRESHOLD: "-1"
+    ports:
+      - "9187:9187"
+    networks:
+      - psa_observability
+    depends_on:
+      # We don't `depends_on` the main app's postgres here
+      # because the exporter connects over the shared
+      # network; the wait-for-it script below gives the
+      # DB time to come up on first run.
+      - prometheus
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.2.2
+    container_name: psa-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../deploy/metrics/grafana-swarm-dashboard.json:/var/lib/grafana/dashboards/swarm.json:ro
+    networks:
+      - psa_observability
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  psa_observability:
+    name: psa_observability
+    driver: bridge

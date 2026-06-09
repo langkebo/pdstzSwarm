@@ -1,0 +1,234 @@
+# P3.5 — Image CI
+#
+# Validates the P3-1 image artifacts on every PR and push
+# to main. Steps:
+#   1. Verify seccomp JSON + manifest JSON shape (parse-only,
+#      no Docker required).
+#   2. Verify Dockerfile syntax with buildx build --check
+#      (requires Docker; cached by actions/cache).
+#   3. (Main branch only) Build the Kali image, push to GHCR.
+#   4. (Main branch only) Run the docker package's live tests
+#      against the freshly built image, including the manifest
+#      verify path.
+#
+# Design:
+#   - The fast parse-only job runs on every PR. Cheap, parallel.
+#   - The build + push job only runs on push to main (or
+#     manual workflow_dispatch). Caches layers via docker
+#     buildx cache mount.
+#   - On PRs touching image/* or seccomp/* paths, the build
+#     job also runs to give reviewers a real built image to
+#     pull.
+#
+# Triggers:
+#   - pull_request on paths under deploy/, scripts/ci/,
+#     .github/workflows/image-ci.yml
+#   - push to main on the same paths
+#   - workflow_dispatch (manual)
+
+name: image-ci
+
+on:
+  pull_request:
+    paths:
+      - "deploy/docker/**"
+      - "scripts/ci/**"
+      - "internal/tools/docker/manifest*.go"
+      - "internal/tools/docker/seccomp*.go"
+      - ".github/workflows/image-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "deploy/docker/**"
+      - "scripts/ci/**"
+      - "internal/tools/docker/manifest*.go"
+      - "internal/tools/docker/seccomp*.go"
+      - ".github/workflows/image-ci.yml"
+  workflow_dispatch:
+  schedule:
+    # Weekly Monday 06:00 UTC scan for regression in seccomp /
+    # manifest shape. Cheap (parse-only).
+    - cron: "0 6 * * 1"
+
+# Cancel an in-flight run when the same branch / PR gets
+# pushed again — keeps the queue short.
+concurrency:
+  group: image-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Minimal default: only run parse checks. Other jobs are
+# explicit. This keeps PR feedback fast (~30s for parse).
+permissions:
+  contents: read
+  packages: write   # only used by the build-push job
+
+env:
+  IMAGE_NAME: psa/kali
+  SECCOMP_DIR: deploy/docker/seccomp
+  KALI_DOCKERFILE: deploy/docker/images/kali/Dockerfile
+
+jobs:
+  # ---------- Job 1: parse-only checks (PR + main, fast) ----------
+  parse:
+    name: seccomp + manifest parse
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up jq
+        uses: dcarbone/install-jq-action@v2
+
+      - name: Run image artifact verification (skip-build)
+        run: bash scripts/ci/verify-image-artifacts.sh --skip-build
+
+      - name: Run Go unit tests on docker + guardrails
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.2"
+          cache: true
+
+      - name: Go test (unit only, no live daemon)
+        run: |
+          set -euo pipefail
+          go test -count=1 -short \
+            ./internal/tools/docker/ \
+            ./internal/guardrails/
+
+  # ---------- Job 2: Dockerfile syntax (PR + main) ----------
+  dockerfile-lint:
+    name: dockerfile syntax
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    needs: parse
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Verify Dockerfile parses
+        run: |
+          docker buildx build \
+            --check \
+            --file "${{ env.KALI_DOCKERFILE }}" \
+            "${{ github.workspace }}"
+
+  # ---------- Job 3: build + push (main only) ----------
+  build:
+    name: build & push ${{ env.IMAGE_NAME }}:${{ github.sha }}
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    needs: [parse, dockerfile-lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=PentestSwarm AI Kali Image
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build + push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ env.KALI_DOCKERFILE }}
+          push: ${{ github.event_name == 'push' }}
+          load: ${{ github.event_name == 'workflow_dispatch' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=kali-build
+          cache-to: type=gha,scope=kali-build,mode=max
+          provenance: true
+          sbom: true
+
+  # ---------- Job 4: live tests against the built image (main only) ----------
+  live-verify:
+    name: live tests against built image
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    needs: build
+    services:
+      docker:
+        image: docker:27-dind
+        options: >-
+          --privileged
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.2"
+          cache: true
+
+      - name: Pull the just-built image (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          # Tag the locally loaded image with the GHCR ref
+          # so the live test picks it up.
+          docker tag \
+            ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Run live integration tests
+        env:
+          DOCKER_HOST: tcp://docker:2376
+          DOCKER_TLS_VERIFY: "1"
+          DOCKER_CERT_PATH: /certs/client
+          PSA_KALI_IMAGE: ghcr.io/${{ github.repository }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        run: |
+          go test -count=1 -v \
+            -run 'TestLive_(KaliImage|Manifest|Seccomp)' \
+            ./internal/tools/docker/
+
+      - name: Run live guardrail tests
+        env:
+          DOCKER_HOST: tcp://docker:2376
+          DOCKER_TLS_VERIFY: "1"
+          DOCKER_CERT_PATH: /certs/client
+        run: |
+          go test -count=1 -v \
+            -run 'TestLive_' \
+            ./internal/guardrails/
+
+  # ---------- Job 5: weekly scheduled scan (defense in depth) ----------
+  weekly-scan:
+    name: weekly syscall coverage scan
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up jq
+        uses: dcarbone/install-jq-action@v2
+
+      - name: Check for newly-vendored dangerous syscalls
+        run: |
+          # Detect any ALLOW rule for a syscall the report
+          # lists as "must stay blocked" — catches accidental
+          # edits that re-introduce a regression.
+          bash scripts/ci/verify-image-artifacts.sh --skip-build

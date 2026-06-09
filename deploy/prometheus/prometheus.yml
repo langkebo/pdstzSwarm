@@ -1,0 +1,61 @@
+# P5+ 观测 (observability) Prometheus scrape configuration.
+#
+# This config is mounted into the prometheus container by
+# deploy/docker-compose.observability.yml. It scrapes three
+# targets:
+#
+#   1. pentestswarm (the main app) — exposes the application-
+#      specific metrics bundle (psa_*) at :8080/metrics
+#   2. pg_exporter — exposes Postgres server metrics
+#      (pg_exporter_*) at :9187/metrics
+#   3. prometheus itself — self-scrape for
+#      prometheus_tsdb_head_series / up{job="prometheus"}
+#
+# The pentestswarm job is intentionally broad: it scrapes the
+# host port 8080, which is the default pentestswarm serve port.
+# If you run pentestswarm on a different port, override
+# `static_configs.targets` in your env-specific override.
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: psa-local
+    monitor: psa
+
+scrape_configs:
+  # The main Pentest-Swarm-AI app. Exposes the zero-dependency
+  # registry at /metrics (psa_* + process_*).
+  - job_name: pentestswarm
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets:
+          - "host.docker.internal:8080"
+          - "pentestswarm:8080"
+        labels:
+          service: psa-app
+          tier: backend
+
+  # Postgres server metrics via pg_exporter. The exporter
+  # itself is the sidecar container; the underlying database
+  # is the one shipped by deploy/docker-compose.yml.
+  - job_name: pg_exporter
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets:
+          - "pg_exporter:9187"
+        labels:
+          service: psa-db
+          tier: data
+
+  # Prometheus self-scrape.
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - "localhost:9090"
+        labels:
+          service: psa-prom
+          tier: observability

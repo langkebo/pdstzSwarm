@@ -9,16 +9,18 @@ import (
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/llm"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/pipeline"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/scope"
+	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/skills"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/tools"
 	"github.com/google/uuid"
 )
 
 // ReconAgent orchestrates security tools and analyzes output to build an AttackSurface.
 type ReconAgent struct {
-	provider    llm.Provider
-	coordinator *tools.Coordinator
-	strict      bool
-	onErr       func(error)
+	provider      llm.Provider
+	coordinator   *tools.Coordinator
+	strict        bool
+	onErr         func(error)
+	skillInjector *skills.Injector
 }
 
 // Option customises ReconAgent construction.
@@ -33,6 +35,12 @@ func WithStrict() Option {
 // emitting degraded-mode warnings to the event stream.
 func WithErrorSink(fn func(error)) Option {
 	return func(r *ReconAgent) { r.onErr = fn }
+}
+
+// WithSkillInjector enables community skill recommendations in the
+// system prompt for more informed analysis.
+func WithSkillInjector(inj *skills.Injector) Option {
+	return func(r *ReconAgent) { r.skillInjector = inj }
 }
 
 // NewReconAgent creates a new recon agent.
@@ -61,8 +69,10 @@ func (r *ReconAgent) PlanRecon(target string) ReconPlan {
 		// IP target: port scan → probe → scan
 		plan.ToolOrder = []string{"naabu", "httpx", "nuclei"}
 	} else if isURLTarget(target) {
-		// URL target: probe → crawl → history → scan
-		plan.ToolOrder = []string{"httpx", "katana", "gau", "nuclei"}
+		// URL target: probe → port scan → crawl → history → scan
+		// naabu extracts the host from the URL and scans common ports,
+		// giving us a richer attack surface than just the HTTP probe.
+		plan.ToolOrder = []string{"naabu", "httpx", "katana", "gau", "nuclei"}
 	} else {
 		// Domain target: full recon pipeline
 		plan.ToolOrder = []string{"subfinder", "dnsx", "naabu", "httpx", "katana", "gau", "nuclei"}
@@ -72,9 +82,9 @@ func (r *ReconAgent) PlanRecon(target string) ReconPlan {
 }
 
 // Execute runs the recon plan and produces an AttackSurface.
-func (r *ReconAgent) Execute(ctx context.Context, plan ReconPlan, scopeDef *scope.ScopeDefinition, campaignID uuid.UUID) (*pipeline.AttackSurface, error) {
+func (r *ReconAgent) Execute(ctx context.Context, plan ReconPlan, scopeDef *scope.ScopeDefinition, campaignID uuid.UUID, opts tools.Options) (*pipeline.AttackSurface, error) {
 	// Run tools
-	_, resultCh := r.coordinator.RunSelected(ctx, plan.ToolOrder, plan.Target, scopeDef, tools.Options{})
+	_, resultCh := r.coordinator.RunSelected(ctx, plan.ToolOrder, plan.Target, scopeDef, opts)
 
 	// Collect results as they stream in
 	var results []*tools.ToolResult
@@ -82,10 +92,30 @@ func (r *ReconAgent) Execute(ctx context.Context, plan ReconPlan, scopeDef *scop
 		results = append(results, result)
 	}
 
-	// Analyze results with LLM
+	// Analyze results with LLM. If the LLM fails (e.g. API key
+	// exhausted, rate-limited, network error), fall back to building
+	// the attack surface from raw tool output rather than failing
+	// the entire campaign.
 	surface, err := r.Analyze(ctx, results, campaignID)
 	if err != nil {
-		return nil, fmt.Errorf("analyzing recon results: %w", err)
+		if r.onErr != nil {
+			r.onErr(fmt.Errorf("LLM analysis failed, using tool-output fallback: %w", err))
+		}
+		// Build surface from raw tool output as degraded-mode fallback
+		fallback := BuildSurfaceFromToolResults(results, plan.Target)
+		if fallback != nil && (len(fallback.Hosts) > 0 || len(fallback.Endpoints) > 0 || len(fallback.Technologies) > 0) {
+			fallback.CampaignID = campaignID
+			fallback.CreatedAt = time.Now()
+			return fallback, nil
+		}
+		// Even with an empty surface, return it rather than failing
+		// the campaign — the pipeline can still proceed to
+		// classification with whatever partial data exists.
+		return &pipeline.AttackSurface{
+			Target:     plan.Target,
+			CampaignID: campaignID,
+			CreatedAt:  time.Now(),
+		}, nil
 	}
 
 	return surface, nil
@@ -93,18 +123,43 @@ func (r *ReconAgent) Execute(ctx context.Context, plan ReconPlan, scopeDef *scop
 
 // Analyze sends tool results to the LLM for structured analysis.
 func (r *ReconAgent) Analyze(ctx context.Context, results []*tools.ToolResult, campaignID uuid.UUID) (*pipeline.AttackSurface, error) {
-	// Build context from tool results
+	// Build context from tool results, truncating large outputs to avoid
+	// overwhelming the LLM context window (DeepSeek limit: ~64K tokens).
+	const maxToolOutputBytes = 60000 // ~15K tokens per tool, safe margin
 	var contextBuilder strings.Builder
+	successCount := 0
 	for _, result := range results {
 		if result.Error != nil {
 			contextBuilder.WriteString(fmt.Sprintf("Tool: %s (FAILED: %s)\n\n", result.ToolName, result.Error))
 			continue
 		}
-		contextBuilder.WriteString(fmt.Sprintf("Tool: %s\nOutput:\n%s\n\n", result.ToolName, result.RawOutput))
+		successCount++
+		output := result.RawOutput
+		if len(output) > maxToolOutputBytes {
+			// Keep first and last portion for context
+			half := maxToolOutputBytes / 2
+			output = output[:half] + fmt.Sprintf("\n\n... [%d bytes truncated] ...\n\n", len(result.RawOutput)-maxToolOutputBytes) + output[len(result.RawOutput)-half:]
+		}
+		contextBuilder.WriteString(fmt.Sprintf("Tool: %s (%d bytes)\nOutput:\n%s\n\n", result.ToolName, len(result.RawOutput), output))
+	}
+
+	// If no tools succeeded, try to build a surface from parsed findings
+	if successCount == 0 {
+		surface := BuildSurfaceFromToolResults(results, "")
+		if surface != nil && (len(surface.Hosts) > 0 || len(surface.Endpoints) > 0) {
+			surface.CampaignID = campaignID
+			surface.CreatedAt = time.Now()
+			return surface, nil
+		}
+		// Return empty surface rather than error
+		return &pipeline.AttackSurface{
+			CampaignID: campaignID,
+			CreatedAt:  time.Now(),
+		}, nil
 	}
 
 	req := llm.CompletionRequest{
-		SystemPrompt: reconSystemPrompt,
+		SystemPrompt: r.systemPrompt(""),
 		Messages: []llm.Message{
 			{
 				Role: "user",
@@ -156,6 +211,13 @@ func (r *ReconAgent) Analyze(ctx context.Context, results []*tools.ToolResult, c
 			if r.onErr != nil {
 				r.onErr(fmt.Errorf("recon analysis returned empty surface: %w", err))
 			}
+			// Fallback: build surface from raw tool output instead of returning empty
+			fallback := BuildSurfaceFromToolResults(results, "")
+			if fallback != nil && (len(fallback.Hosts) > 0 || len(fallback.Endpoints) > 0 || len(fallback.Technologies) > 0) {
+				fallback.CampaignID = campaignID
+				fallback.CreatedAt = time.Now()
+				return fallback, nil
+			}
 			// Return partial results rather than error (degraded mode).
 			return &pipeline.AttackSurface{
 				CampaignID: campaignID,
@@ -170,24 +232,70 @@ func (r *ReconAgent) Analyze(ctx context.Context, results []*tools.ToolResult, c
 	return surface, nil
 }
 
-const reconSystemPrompt = `You are a specialized security reconnaissance analyst. Your job is to analyze output from security scanning tools and produce a structured attack surface model.
+// systemPrompt returns the base system prompt optionally enriched with
+// community skill recommendations when a SkillInjector is configured.
+func (r *ReconAgent) systemPrompt(target string) string {
+	prompt := reconSystemPrompt
+	if r.skillInjector == nil {
+		return prompt
+	}
+	recs := r.skillInjector.ForTarget(target)
+	if len(recs) == 0 {
+		return prompt
+	}
+	return prompt + "\n" + skills.MustInject(recs)
+}
 
-Given the raw output from tools like subfinder, httpx, nuclei, naabu, katana, dnsx, and gau, you must:
+const reconSystemPrompt = `You are a specialised security reconnaissance analyst. Your job is to analyse output from security scanning tools and produce a structured attack surface model that downstream agents (classifier, exploit, triage) can reason about.
 
-1. Identify all discovered subdomains with their IP addresses and sources
-2. Map all hosts with their open ports and running services
-3. Catalog all discovered web endpoints with parameters
-4. Detect technologies and their versions
-5. Note any interesting findings or anomalies
+Given the raw output from tools like subfinder, httpx, nuclei, naabu, katana, dnsx, and gau, you must extract and structure:
 
+## 1. Subdomains
+- For each discovered subdomain, record: domain, resolved IP, source tool, and any CNAME chain
+- Flag subdomains with dangling CNAMEs (NXDOMAIN / SERVFAIL on the target) — these are takeover candidates
+- Flag subdomains that resolve to cloud provider IPs (AWS, GCP, Azure, Cloudflare) — note the provider
+- Flag wildcard DNS: if a random subdomain resolves, note that the domain uses wildcard DNS
+
+## 2. Hosts & ports
+- For each unique IP, record: all hostnames pointing to it, open ports, service banner per port, and guessed OS
+- Flag unusual ports: 6379 (Redis), 27017 (MongoDB), 5432 (PostgreSQL), 9200 (Elasticsearch), 11211 (Memcached), 2375/2376 (Docker)
+- Flag services with default credentials potential: FTP (21), SSH (22), Telnet (23), SMB (445), RDP (3389)
+- If a port returns an HTTP response, reclassify it as an HTTP endpoint for the endpoint catalog
+
+## 3. Web endpoints
+- For each URL, record: method(s) allowed (from OPTIONS or headers), status code, content-type, content-length
+- Flag "interesting" endpoints: admin panels (/admin, /wp-admin, /administrator, /manager), API docs (/swagger, /openapi.json, /graphql, /graphiql), debug endpoints (/debug, /phpinfo, /actuator, /.env), file uploads, login pages, registration pages
+- Flag endpoints returning 401/403 — these are auth-gated and need auth testing
+- Flag endpoints returning 500 — these may indicate exploitable server errors
+- Flag endpoints with reflected parameters (check for ?param=value in URL and look for the value in the response)
+
+## 4. Technologies
+- Identify: web server (nginx, Apache, IIS, Caddy), app framework (Django, Rails, Laravel, Express, Spring), CMS (WordPress, Drupal, Joomla), JS framework (React, Vue, Angular, Next.js), CDN/WAF (Cloudflare, Akamai, Fastly, AWS CloudFront)
+- Record version numbers where available (headers, HTML comments, JS bundles, error pages)
+- Flag known-vulnerable versions: e.g., Apache Struts < 2.5.30, WordPress < 5.8.3, Django < 3.2.14
+- Flag technologies that suggest specific attack paths: PHP → file inclusion, Java → deserialization, Node.js → prototype pollution, .NET → ViewState
+
+## 5. Interesting anomalies
+- Flag any finding that doesn't fit the above categories but is security-relevant: exposed .git directories, backup files (.bak, .old, .swp), config files (.env, config.yml, web.config), database dumps, log files, credentials in JS bundles
+- Flag Cloud metadata endpoints: 169.254.169.254 (AWS), metadata.google.internal (GCP), 169.254.169.254/metadata (Azure)
+- Flag OOB callback indicators: any hostname that appears to be a Burp Collaborator / interactsh domain
+
+## Output format
 Output your analysis as a valid JSON object matching this schema:
 {
   "target": "string",
-  "subdomains": [{"domain": "string", "ip": "string", "source": "string"}],
-  "hosts": [{"ip": "string", "hostnames": ["string"], "open_ports": [int], "services": {}, "os": "string"}],
-  "endpoints": [{"url": "string", "method": "string", "status_code": int, "interesting": bool}],
-  "technologies": {"key": "version"}
+  "subdomains": [{"domain": "string", "ip": "string", "source": "string", "cname": "string", "takeover_risk": bool}],
+  "hosts": [{"ip": "string", "hostnames": ["string"], "open_ports": [int], "services": {"port": "service"}, "os": "string", "flags": ["string"]}],
+  "endpoints": [{"url": "string", "method": "string", "status_code": int, "content_type": "string", "content_length": int, "interesting": bool, "interesting_reason": "string", "reflected_params": ["string"]}],
+  "technologies": {"technology": "version"},
+  "anomalies": [{"type": "string", "target": "string", "description": "string"}]
 }
+
+## Anti-patterns
+- Do not invent data — if the tool output doesn't contain a field, omit it (null/empty in JSON)
+- Do not merge two different hosts' data into one entry
+- Do not guess OS or service versions if the tool output doesn't provide them
+- Do not flag an endpoint as "interesting" without a concrete reason
 
 Respond ONLY with the JSON object. No markdown, no explanation.`
 

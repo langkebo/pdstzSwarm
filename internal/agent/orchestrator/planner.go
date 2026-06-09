@@ -1,5 +1,7 @@
 package orchestrator
 
+import "github.com/Armur-Ai/Pentest-Swarm-AI/internal/skills"
+
 // Milestone is a checkpoint the orchestrator tracks progress against.
 type Milestone struct {
 	Name        string `json:"name"`
@@ -7,16 +9,57 @@ type Milestone struct {
 	Completed   bool   `json:"completed"`
 }
 
+// PlanResult bundles milestones with recommended skill categories.
+type PlanResult struct {
+	Milestones          []Milestone
+	SkillCategories     []skills.Category // suggested categories for skill injection
+	RecommendedSkills   string            // pre-rendered skill block, or empty
+}
+
 // Planner decomposes campaign objectives into milestones.
-type Planner struct{}
+type Planner struct{
+	injector *skills.Injector
+}
 
 // NewPlanner creates a new campaign planner.
 func NewPlanner() *Planner {
-	return &Planner{}
+	return &Planner{injector: skills.NewInjector(12)}
+}
+
+// NewPlannerWithInjector creates a planner backed by a custom skill injector.
+func NewPlannerWithInjector(inj *skills.Injector) *Planner {
+	return &Planner{injector: inj}
 }
 
 // DecomposeObjective breaks an objective into ordered milestones.
+// Use DecomposeWithSkills for skill-aware planning.
 func (p *Planner) DecomposeObjective(objective string) []Milestone {
+	return p.DecomposeWithSkills(objective).Milestones
+}
+
+// DecomposeWithSkills returns milestones plus recommended skill
+// categories and a pre-rendered skill block.
+func (p *Planner) DecomposeWithSkills(objective string) PlanResult {
+	result := PlanResult{
+		Milestones: planMilestones(objective),
+	}
+	if p.injector != nil {
+		recs := p.injector.ForObjective(objective)
+		result.RecommendedSkills = skills.MustInject(recs)
+		// Extract unique categories from recommendations.
+		seen := map[skills.Category]bool{}
+		for _, r := range recs {
+			seen[r.Skill.Category] = true
+		}
+		for c := range seen {
+			result.SkillCategories = append(result.SkillCategories, c)
+		}
+	}
+	return result
+}
+
+// planMilestones is the core milestone decomposition logic.
+func planMilestones(objective string) []Milestone {
 	lower := toLower(objective)
 
 	switch {

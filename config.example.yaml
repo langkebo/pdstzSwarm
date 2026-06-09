@@ -34,6 +34,34 @@ orchestrator:
   max_tokens: 8192         # Max output tokens per completion
   temperature: 0.1         # Lower = more deterministic
 
+# --- LLM Embeddings (pgvector) ---
+# Used by blackboard to attach semantic vectors to findings. Leave
+# provider blank to disable embedding generation (the board will
+# continue to write findings with NULL embeddings).
+llm:
+  embedding:
+    provider: "noop"           # openai, deepseek, glm, kimi, qwen, ollama, noop
+    api_key: ""                # required for non-noop providers
+    endpoint: ""               # defaults to vendor host (see llm/embeddings.go)
+    model: ""                  # vendor default (text-embedding-3-small, nomic-embed-text, ...)
+    dimensions: 1536           # must match the pgvector column width
+    batch_size: 32             # texts per HTTP request
+    timeout: 30                # seconds
+    cache_size: 1024           # 0 → disable in-memory LRU
+
+  # --- Conversation summariser (orchestrator + any long-lived agent) ---
+  # When set, BudgetManager delegates the "compress oldest messages" step
+  # to a *llm.Summarizer built from this config. Leave model blank to
+  # use the chat provider's default model.
+  summarizer:
+    model: ""                  # blank → use the chat provider's model
+    max_tokens: 2048           # output cap for the summary
+    temperature: 0.0           # 0 = deterministic; keep low for pentest continuity
+    trigger_at: 0.7            # fraction of context_window that triggers summarisation
+    keep_recent_ratio: 0.5     # fraction of recent messages kept verbatim
+    min_messages: 4            # below this count, summarisation is skipped
+    system_prompt: "You are a summarization assistant. Summarize the following conversation concisely, preserving all key facts, decisions, findings, and action items. Do not lose any technical details about targets, vulnerabilities, or commands."
+
 # --- Specialist Agent Models ---
 # By default, ALL agents inherit the orchestrator's provider and API key.
 # This means with just a Claude API key above, everything works — no Ollama needed.
@@ -126,3 +154,76 @@ integrations:
 logging:
   level: "info"            # debug, info, warn, error
   format: "console"        # console (human-readable) or json (structured)
+
+# LLM/embeddings — used by blackboard finding vectorisation and by
+# the summariser that compresses long agent conversations. Provider
+# dispatches to the internal/llm factory.
+llm:
+  embeddings:
+    # openai | deepseek | glm | kimi | qwen | ollama | noop | local_stub
+    provider: noop
+    model: text-embedding-3-small   # provider default when empty
+    dimensions: 1536                # 0 = provider default
+    endpoint: https://api.openai.com/v1
+    api_key: ${OPENAI_API_KEY}
+    batch_size: 100                 # 0 = provider default
+    timeout: 30s
+    cache:
+      enabled: true
+      size: 1024
+      ttl: 1h
+    # P5+ 嵌入异步化：worker pool 把并发 Embed 请求
+    # 合并成更少的上游调用，黑板 Write 路径不再阻塞。
+    # 默认全部关闭以保持冷路径简单；吞吐量上来后再
+    # 打开。
+    async:
+      enabled: false
+      workers: 4                 # 0 → 4
+      batch_size: 32             # 0 → 32
+      batch_timeout: 50ms        # 0 → 50ms
+      queue_size: 1024           # 0 → 1024
+      submit_wait: 1s            # 0 → 无限等待
+    # P5+ Redis 缓存：跨进程持久化键向量，多实例部
+    # 署时让所有实例共享同一份缓存。Redis 故障时不
+    # 阻断流水线，只是 hit rate 退回 LRU。
+    redis:
+      enabled: false
+      addr: localhost:6379
+      password: ""
+      db: 0
+      ttl: 24h
+      prefix: "psa:embed:"
+      timeout: 500ms             # 单次 Redis 调用的硬上限
+
+  summarizer:
+    model: ""                      # empty = provider default
+    max_tokens: 2048
+    temperature: 0.0
+    trigger_at: 0.7                # 70% of context window
+    warning_at: 0.8                # 80% → IsNearLimit()
+    keep_recent_ratio: 0.5         # keep 50% of recent messages verbatim
+    min_messages_to_summarize: 4
+    preserve_system_prompt: true   # keep messages[0] (system) untouched
+    custom_system_prompt: ""       # empty = pentest-aware default
+
+# --- P5+ 商业化 ---
+# 三件套：
+#   - license_key : Ed25519 签名 blob；空 = OSS / demo
+#   - cors.origins: 显式允许的 origin 列表；空 = "*"（legacy）
+#   - multi_tenant: 启用 Postgres RLS + tenant_id 隔离
+#
+# 默认全关，OSS 用户不需要填这个块。
+commercial:
+  license_key: ""                 # 空 = 不校验；非空时启动期 Ed25519 验签
+  public_key: ""                  # 公钥 hex；也可走 $PENTESTSWARM_LICENSE_PUB 或 ~/.pentestswarm/license.pub.hex
+  installation_id: ""             # 自动从 ~/.pentestswarm/installation_id 读取/生成
+  cache_file: ""                  # 自定义路径；空 = ~/.pentestswarm/installation_id
+  multi_tenant: false             # 启用 RLS 隔离
+  cors:
+    origins:                      # 显式允许的 origin；空 = "*" 兼容旧行为
+      - "https://app.example.com"
+    allow_methods: []             # 空 = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    allow_headers: []             # 空 = "Origin, Content-Type, Accept, Authorization, X-API-Key"
+    allow_credentials: false      # true 时浏览器会带 cookie
+    max_age: 43200                # preflight 缓存秒数
+    custom_user_prompt_tpl: ""     # empty = "Summarize this conversation:\n\n{summary}"

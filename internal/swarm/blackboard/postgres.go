@@ -1,3 +1,9 @@
+// Package blackboard implements the stigmergic shared state for the swarm.
+//
+// The blackboard replaces the sequential 5-phase runner. Agents read and write
+// findings tagged with a type; their trigger predicates wake them when
+// relevant state appears. Pheromone weights decay over time so the swarm
+// naturally prioritises recent, high-signal findings and lets stale paths die.
 package blackboard
 
 import (
@@ -11,6 +17,16 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// FindingEmbedder is the minimum surface PostgresBoard needs to attach
+// embeddings to outgoing findings. Defined here as a local interface to
+// avoid an import cycle on internal/llm. The llm.Embedder interface
+// satisfies this contract.
+type FindingEmbedder interface {
+	Embed(ctx context.Context, texts []string) ([][]float32, error)
+	Dimensions() int
+	ModelName() string
+}
 
 // PostgresBoard is the durable Postgres-backed blackboard.
 // All writes are transactional; reads compute pheromone at query time via
@@ -27,6 +43,17 @@ type PostgresBoard struct {
 		sync.Mutex
 		ch []chan Finding
 	}
+
+	// embedder is an optional hook. When non-nil, PostgresBoard.Write
+	// computes an embedding for the finding's textual summary and
+	// persists it alongside the row. The hook is best-effort: an
+	// embedding failure is logged and the row is still inserted with
+	// a NULL vector, so the writing path never breaks the agent loop
+	// because the embedding API is down.
+	embedderMu sync.RWMutex
+	embedder   FindingEmbedder
+	hooksMu    sync.RWMutex
+	hooks      *HookRegistry
 }
 
 // NewPostgresBoard creates a new blackboard backed by the given pool.
@@ -34,7 +61,93 @@ func NewPostgresBoard(pool *pgxpool.Pool) *PostgresBoard {
 	return &PostgresBoard{
 		pool:         pool,
 		pollInterval: 500 * time.Millisecond,
+		hooks:        NewHookRegistry(),
 	}
+}
+
+// AddEmbedHook registers an EmbedHook to be invoked from Write. The
+// hook fires in addition to (not instead of) the legacy SetEmbedder
+// path, so the two surfaces can coexist. Multiple hooks are invoked
+// in registration order; any single failure is logged but does not
+// abort the others.
+func (b *PostgresBoard) AddEmbedHook(h EmbedHook) {
+	b.hooksMu.Lock()
+	if b.hooks == nil {
+		b.hooks = NewHookRegistry()
+	}
+	b.hooksMu.Unlock()
+	b.hooks.Add(h)
+}
+
+// GraphHook is the minimum surface PostgresBoard needs to invoke
+// a knowledge-graph hook from Write. The contract matches
+// internal/graph.GraphHook.OnWrite exactly. Declared here as a
+// local interface to avoid an import cycle on internal/graph —
+// the graph package imports blackboard (for Finding), so the
+// dependency must point the other way.
+//
+// Operators that want the graph layer wire a graph.GraphHook via
+// AddGraphHook. The interface is structural: any value with an
+// OnWrite method that accepts a *Finding and returns an error
+// satisfies it, so unit tests can pass mocks freely.
+type GraphHook interface {
+	OnWrite(ctx context.Context, f *Finding) error
+}
+
+// AddGraphHook registers a GraphHook to be invoked from Write. It
+// runs AFTER the EmbedHook chain (so the finding's Embedding is
+// already populated when the graph hook extracts entities) and is
+// best-effort: errors are logged and silently dropped so a
+// transient graph-store failure never blocks the writing path.
+func (b *PostgresBoard) AddGraphHook(h GraphHook) {
+	b.hooksMu.Lock()
+	if b.hooks == nil {
+		b.hooks = NewHookRegistry()
+	}
+	b.hooksMu.Unlock()
+	b.hooks.AddGraph(h)
+}
+
+// SetEmbedder attaches an embeddings hook to the board. The hook is
+// invoked from Write to compute a vector for each finding's textual
+// summary and persist it in the pgvector column. Passing nil detaches
+// the hook and returns to the pre-P3-2 behaviour of always inserting
+// NULL vectors. Safe to call at any point during the board's lifetime
+// (the embedder pointer is read under an RWMutex).
+func (b *PostgresBoard) SetEmbedder(e FindingEmbedder) {
+	b.embedderMu.Lock()
+	b.embedder = e
+	b.embedderMu.Unlock()
+}
+
+// embedderSnapshot returns the current embedder hook (may be nil).
+// Reading under RLock is the cheap fast-path; the hook is read on every
+// Write so the lock is intentionally narrow.
+func (b *PostgresBoard) embedderSnapshot() FindingEmbedder {
+	b.embedderMu.RLock()
+	defer b.embedderMu.RUnlock()
+	return b.embedder
+}
+
+// computeFindingEmbedding builds the textual summary used as the
+// embedding input and asks the embedder for a vector. The summary is
+// the title plus the first 500 bytes of the Data blob (interpreted as
+// a JSON or text payload). Returns (nil, nil) when no embedder is
+// attached — callers must tolerate nil.
+func (b *PostgresBoard) computeFindingEmbedding(ctx context.Context, f Finding) []float32 {
+	e := b.embedderSnapshot()
+	if e == nil {
+		return nil
+	}
+	text := buildFindingText(f, 500)
+	if text == "" {
+		return nil
+	}
+	vecs, err := e.Embed(ctx, []string{text})
+	if err != nil || len(vecs) == 0 {
+		return nil // best-effort: degrade to NULL embedding on failure
+	}
+	return vecs[0]
 }
 
 // Write inserts a new finding. The assigned ID is returned even if the
@@ -67,6 +180,37 @@ func (b *PostgresBoard) Write(ctx context.Context, f Finding, opts ...WriteOptio
 	if len(f.Data) == 0 {
 		// Default to an empty JSON object so the jsonb column is well-formed.
 		f.Data = []byte(`{}`)
+	}
+
+	// Compute the embedding through the optional hook, then merge with
+	// any explicit WithEmbedding(...) override. The hook is best-effort:
+	// a failure or absent embedder is silently treated as "no vector",
+	// and the row is still inserted (with a NULL embedding).
+	if o.embedding == nil {
+		if vec := b.computeFindingEmbedding(ctx, f); vec != nil {
+			o.embedding = vec
+		}
+	}
+
+	// Fire any registered EmbedHook implementations (e.g. AutoEmbedHook).
+	// A hook may overwrite the embedding with a richer derivation, or
+	// populate it for the first time when the legacy SetEmbedder path
+	// was not used. Any hook error is collected and silently dropped
+	// so the writing path remains best-effort.
+	if b.hooks != nil {
+		_ = b.hooks.Invoke(ctx, &f)
+		if o.embedding == nil && len(f.Embedding) > 0 {
+			// At least one hook produced a vector — prefer it.
+			o.embedding = f.Embedding
+		}
+	}
+
+	// Fire any registered GraphHook implementations (the P4
+	// knowledge-graph layer). Runs AFTER the embed-hook chain so
+	// the finding's Embedding is already populated. Errors are
+	// collected and dropped — the writing path is best-effort.
+	if b.hooks != nil {
+		_ = b.hooks.InvokeGraph(ctx, &f)
 	}
 
 	tx, err := b.pool.Begin(ctx)
@@ -404,4 +548,31 @@ func embeddingArg(v []float32) any {
 	}
 	sb.WriteByte(']')
 	return sb.String()
+}
+
+// buildFindingText assembles the textual summary used as the embedding
+// input. The summary prefers the Finding's Target and AgentName as
+// high-signal anchors and falls back to a prefix of the JSON Data blob.
+// maxDataBytes caps the Data slice so a giant finding payload doesn't
+// blow the embedder's input limit.
+func buildFindingText(f Finding, maxDataBytes int) string {
+	var b strings.Builder
+	if f.Target != "" {
+		b.WriteString(f.Target)
+		b.WriteString(" | ")
+	}
+	if f.AgentName != "" {
+		b.WriteString(f.AgentName)
+		b.WriteString(" | ")
+	}
+	b.WriteString(string(f.Type))
+	b.WriteString(": ")
+	if len(f.Data) > 0 {
+		data := f.Data
+		if len(data) > maxDataBytes {
+			data = data[:maxDataBytes]
+		}
+		b.Write(data)
+	}
+	return b.String()
 }

@@ -45,7 +45,21 @@ func PricingFor(model string) Pricing {
 		return Pricing{InputPerMillion: 0.60, CachedInputPerMillion: 0.60, OutputPerMillion: 2.50}
 
 	// --- DeepSeek direct ---
+	//
+	// Pricing snapshot per https://platform.deepseek.com/api-docs/pricing
+	// updated 2026-04. V4 was released 2026-Q1 with tiered
+	// flash / pro SKUs; V3 entries kept for legacy model
+	// names that still route to V3 servers.
+	case "deepseek-v4-pro":
+		// Flagship V4 model. $0.55/M input, $2.19/M output.
+		// Cached input (24h hit) is $0.14/M.
+		return Pricing{InputPerMillion: 0.55, CachedInputPerMillion: 0.14, OutputPerMillion: 2.19}
+	case "deepseek-v4-flash":
+		// Smaller V4 tier. ~$0.27/M input, $1.10/M output.
+		return Pricing{InputPerMillion: 0.27, CachedInputPerMillion: 0.07, OutputPerMillion: 1.10}
 	case "deepseek-chat":
+		// V3 family — kept for backwards compat with any
+		// operator that hard-codes the legacy alias.
 		return Pricing{InputPerMillion: 0.27, CachedInputPerMillion: 0.07, OutputPerMillion: 1.10}
 	case "deepseek-reasoner":
 		return Pricing{InputPerMillion: 0.55, CachedInputPerMillion: 0.14, OutputPerMillion: 2.19}

@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/scope"
@@ -25,15 +26,15 @@ func (n *NaabuTool) Run(ctx context.Context, target string, opts Options) (*Tool
 		}
 	}
 
-	timeout := time.Duration(opts.GetInt("timeout", 60)) * time.Second
+	timeout := time.Duration(opts.GetInt("timeout", 120)) * time.Second
+
+	// Extract hostname from URL targets (e.g. "https://example.com" → "example.com")
+	host := extractHost(target)
 
 	// Build port flags. naabu accepts either:
 	//   -p <list>            (e.g. "80,443" or "100-200")
 	//   -top-ports <preset>  (preset values: "full" | "100" | "1000")
-	// The previous default of `-p top-1000` was invalid syntax and made
-	// naabu exit with FTL "could not read ports: invalid port number: 'top'",
-	// which in the IP-only recon path collapsed the whole pipeline.
-	args := []string{"-host", target, "-json", "-silent"}
+	args := []string{"-host", host, "-json", "-silent"}
 	if explicit := opts.GetString("ports", ""); explicit != "" {
 		args = append(args, "-p", explicit)
 	} else {
@@ -42,4 +43,21 @@ func (n *NaabuTool) Run(ctx context.Context, target string, opts Options) (*Tool
 
 	result := RunToolCommand(ctx, "naabu", target, timeout, "naabu", args...)
 	return result, result.Error
+}
+
+// extractHost strips the protocol and path from a URL, returning just the
+// hostname (and port if present). Used to make naabu/host-based tools work
+// when the target is a full URL.
+func extractHost(target string) string {
+	t := target
+	if idx := strings.Index(t, "://"); idx != -1 {
+		t = t[idx+3:]
+	}
+	if idx := strings.IndexByte(t, '/'); idx != -1 {
+		t = t[:idx]
+	}
+	if idx := strings.IndexByte(t, '@'); idx != -1 {
+		t = t[idx+1:]
+	}
+	return strings.TrimSpace(t)
 }

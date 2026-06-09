@@ -1,0 +1,20 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/login/page": "/login",
+  "/(app)/agents/page": "/agents",
+  "/(app)/findings/page": "/findings",
+  "/(app)/graph/page": "/graph",
+  "/(app)/campaigns/page": "/campaigns",
+  "/(app)/live/page": "/live",
+  "/(app)/page": "/",
+  "/(app)/reports/page": "/reports",
+  "/(app)/skills/page": "/skills",
+  "/(app)/settings/api-tokens/page": "/settings/api-tokens",
+  "/(app)/settings/mcp/page": "/settings/mcp",
+  "/(app)/settings/models/page": "/settings/models",
+  "/(app)/settings/page": "/settings",
+  "/(app)/settings/prompts/page": "/settings/prompts",
+  "/(app)/settings/providers/page": "/settings/providers",
+  "/(app)/settings/users/page": "/settings/users",
+  "/(app)/reports/detail/page": "/reports/detail"
+}

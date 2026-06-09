@@ -18,7 +18,7 @@ type ScopeDefinition struct {
 	ExcludedCIDRs  []string `json:"excluded_cidrs"  yaml:"excluded_cidrs,omitempty"`
 }
 
-// Validate checks whether a target (IP, domain, or URL) is within scope.
+// Validate checks whether a target (IP, domain, CIDR, or URL) is within scope.
 // Returns nil if in scope, ErrScopeViolation if not.
 func Validate(target string, scope ScopeDefinition) error {
 	if len(scope.AllowedCIDRs) == 0 && len(scope.AllowedDomains) == 0 {
@@ -27,6 +27,11 @@ func Validate(target string, scope ScopeDefinition) error {
 			Scope:  "<empty>",
 			Detail: "scope has no allowed CIDRs or domains defined",
 		}
+	}
+
+	// Try parsing as CIDR first (e.g. "10.168.3.0/24")
+	if _, ipNet, err := net.ParseCIDR(target); err == nil {
+		return validateCIDR(ipNet, scope)
 	}
 
 	// Try parsing as URL first
@@ -45,6 +50,33 @@ func Validate(target string, scope ScopeDefinition) error {
 
 	// Plain IP or domain
 	return validateHost(target, scope)
+}
+
+// validateCIDR checks whether a CIDR target is a subset of an allowed CIDR.
+func validateCIDR(targetNet *net.IPNet, scope ScopeDefinition) error {
+	for _, cidr := range scope.AllowedCIDRs {
+		_, allowedNet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			continue
+		}
+		// If the target CIDR is a subset of (or equal to) an allowed CIDR, it's in scope.
+		if allowedNet.Contains(targetNet.IP) {
+			// Also verify the end of the target range is within the allowed range
+			endIP := make(net.IP, len(targetNet.IP))
+			for i := range targetNet.IP {
+				endIP[i] = targetNet.IP[i] | ^targetNet.Mask[i]
+			}
+			if allowedNet.Contains(endIP) {
+				return nil
+			}
+		}
+	}
+
+	return &apperrors.ScopeViolationError{
+		Target: targetNet.String(),
+		Scope:  strings.Join(scope.AllowedCIDRs, ", "),
+		Detail: "CIDR is not within any allowed CIDR range",
+	}
 }
 
 func validateHost(host string, scope ScopeDefinition) error {

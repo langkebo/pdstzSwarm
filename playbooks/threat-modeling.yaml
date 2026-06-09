@@ -1,0 +1,75 @@
+name: Threat Modeling
+description: >
+  Structured threat modeling playbook using STRIDE, attack trees, and
+  kill-chain methodologies. Produces a ranked threat register with
+  mitigations mapped to ASVS/MASVS/NIST controls.
+author:
+  name: Pentest-Swarm AI
+  github: Armur-Ai
+version: 1.0.0
+tags: [threat-modeling, stride, design-review, pre-deployment]
+
+variables:
+  scope_file:
+    type: string
+    required: true
+    description: Path to the signed scope YAML authorising this engagement
+  architecture_doc:
+    type: string
+    required: true
+    description: Path to the architecture diagram or design document
+  methodology:
+    type: string
+    default: stride
+    description: "stride | attack-tree | kill-chain | hybrid"
+  compliance_framework:
+    type: string
+    required: false
+    description: "asvs | masvs | nist | iso27001 | all"
+
+phases:
+  - name: asset_discovery
+    tools:
+      - name: nuclei
+        options:
+          templates:
+            - "threat-modeling/asset-identification/"
+    post_analysis: |
+      Identify and classify assets: data stores, compute resources,
+      identity providers, external integrations, and trust boundaries.
+      Assign sensitivity tiers (public, internal, confidential, restricted).
+
+  - name: stride_decomposition
+    tools:
+      - name: nuclei
+        options:
+          templates:
+            - "threat-modeling/stride/"
+    post_analysis: |
+      Apply STRIDE per trust boundary: Spoofing (auth bypass), Tampering
+      (data integrity), Repudiation (audit gaps), Information Disclosure
+      (data leaks), Denial of Service (rate limiting), Elevation of
+      Privilege (authz flaws). Generate threat cards with pre-conditions.
+
+  - name: attack_path_analysis
+    tools:
+      - name: nuclei
+        options:
+          templates:
+            - "threat-modeling/attack-paths/"
+    post_analysis: |
+      Build attack trees from entry points to crown jewels. Calculate
+      likelihood × impact scores. Chain low-severity findings into
+      compound attacks. Flag unmitigated kill-chain paths.
+
+  - name: control_mapping
+    tools:
+      - name: nuclei
+        options:
+          templates:
+            - "threat-modeling/controls/"
+            - "misconfiguration/security-headers/"
+    post_analysis: |
+      Map identified threats to mitigation controls. Cross-reference
+      against the selected compliance framework. Generate a priority-
+      ordered remediation backlog with control references.

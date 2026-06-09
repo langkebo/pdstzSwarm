@@ -15,9 +15,11 @@ import (
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/agent/recon"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/agent/report"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/config"
+	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/llm"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/memory"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/pipeline"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/scope"
+	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/skills"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/tools"
 	"github.com/google/uuid"
 )
@@ -33,6 +35,16 @@ type CampaignConfig struct {
 	Format    string
 	Provider  string // override config provider
 	APIKey    string // override config API key
+
+	// CampaignID is the pre-existing campaign UUID from the API layer.
+	// When set, the runner uses this ID instead of generating a new one,
+	// ensuring event campaign_id fields match the API campaign ID.
+	// When empty (e.g. CLI usage), the runner generates a new UUID.
+	CampaignID string
+
+	// Credentials extracted from the target string (e.g. "用户名xxx密码yyy").
+	// Populated by parseCredentials before the pipeline starts.
+	Credentials *ParsedCredentials
 
 	// ExplorationBias scales pheromone weights in the swarm path.
 	// "", "med" = default (1.0×); "low" = 0.7× (depth-first); "high" = 1.3× (breadth-first).
@@ -61,6 +73,13 @@ type Runner struct {
 	cleanup     pipeline.CleanupRegistryIface
 	strict      bool
 	assist      exploit.ConfirmFunc // optional; nil = no human-in-the-loop
+
+	// providerDecorator wraps the raw LLM provider after the
+	// runner builds it. Used by the observability layer to
+	// install decorators (e.g. LangFuse ObservingProvider)
+	// without the engine package taking a direct dependency on
+	// the observability packages.
+	providerDecorator func(llm.Provider) llm.Provider
 }
 
 // Option customises Runner construction.
@@ -88,6 +107,53 @@ func WithAssistConfirmer(fn exploit.ConfirmFunc) Option {
 	return func(r *Runner) { r.assist = fn }
 }
 
+// WithLLMProviderDecorator registers a function that wraps the
+// raw LLM provider after the runner builds it. The wrapper sees
+// the cost-metered provider, so it can decorate or replace it.
+//
+// Used by the observability layer: the LangFuse ObservingProvider
+// records every Complete / Stream call's token usage on top of the
+// existing cost meter. Pass nil to disable.
+func WithLLMProviderDecorator(fn func(llm.Provider) llm.Provider) Option {
+	return func(r *Runner) { r.providerDecorator = fn }
+}
+
+// WithLLMMetrics installs the Prometheus metrics decorator on
+// every LLM provider the runner builds. The bundle is shared
+// with the API server (constructed in cli/serve.go via
+// NewServerWithObservability) so the LLM call counts land in
+// the same /metrics endpoint as the HTTP request counts.
+//
+// The decorator wraps the cost-metered provider on top of the
+// user-supplied WithLLMProviderDecorator (if any). The chain is:
+//
+//	rawProvider → costMeter → userDecorator → metricsDecorator
+//
+// The metrics decorator is *always* the outermost wrapper so
+// the latency histogram captures the full observed call time
+// (including any cost-meter or user-decorator overhead).
+func WithLLMMetrics(bundle MetricsBundle) Option {
+	return func(r *Runner) {
+		prev := r.providerDecorator
+		r.providerDecorator = func(p llm.Provider) llm.Provider {
+			if prev != nil {
+				p = prev(p)
+			}
+			return bundle.Wrap(p)
+		}
+	}
+}
+
+// MetricsBundle is the minimal contract the engine package needs
+// to install a metrics decorator on the LLM provider. We don't
+// take a direct dependency on internal/observability/appmetrics
+// to avoid a cycle (engine is imported by api, which is imported
+// by appmetrics). The interface is satisfied by
+// *appmetrics.All; see cli/serve.go for the wiring.
+type MetricsBundle interface {
+	Wrap(llm.Provider) llm.Provider
+}
+
 // NewRunner creates a campaign runner.
 func NewRunner(cfg *config.Config, opts ...Option) *Runner {
 	r := &Runner{
@@ -106,7 +172,27 @@ func NewRunner(cfg *config.Config, opts ...Option) *Runner {
 // Run executes a complete penetration test campaign.
 func (r *Runner) Run(ctx context.Context, cc CampaignConfig, onEvent EventCallback) error {
 	start := time.Now()
-	campaignID := uuid.New()
+
+	// Parse credentials from target string (e.g. "https://example.com 用户名xxx密码yyy")
+	// and clean the target URL so tools receive a proper URL.
+	cleanTarget, creds := parseCredentials(cc.Target)
+	if creds != nil {
+		cc.Credentials = creds
+		cc.Target = cleanTarget
+	}
+
+	// Use the pre-existing campaign ID from the API layer when available,
+	// otherwise generate a new UUID (CLI / standalone usage).
+	var campaignID uuid.UUID
+	if cc.CampaignID != "" {
+		parsed, err := uuid.Parse(cc.CampaignID)
+		if err != nil {
+			return fmt.Errorf("invalid campaign ID: %w", err)
+		}
+		campaignID = parsed
+	} else {
+		campaignID = uuid.New()
+	}
 
 	// Build scope definition
 	scopeDef, err := buildScope(cc.Scope)
@@ -114,10 +200,15 @@ func (r *Runner) Run(ctx context.Context, cc CampaignConfig, onEvent EventCallba
 		return fmt.Errorf("invalid scope: %w", err)
 	}
 
-	// Create campaign
+	// Build campaign metadata (for report generation). When the campaign
+	// ID came from the API layer, we construct a lightweight campaign
+	// object here rather than duplicating the full API state.
+	// Strip protocol prefixes from the target so the name is
+	// filesystem-safe (e.g. "https://example.com" → "example.com").
+	safeTarget := sanitizeTarget(cc.Target)
 	campaign := pipeline.Campaign{
 		ID:        campaignID,
-		Name:      fmt.Sprintf("scan-%s-%s", cc.Target, time.Now().Format("20060102-150405")),
+		Name:      fmt.Sprintf("scan-%s-%s", safeTarget, time.Now().Format("20060102-150405")),
 		Target:    cc.Target,
 		Objective: cc.Objective,
 		Status:    pipeline.StatusPlanned,
@@ -142,6 +233,14 @@ func (r *Runner) Run(ctx context.Context, cc CampaignConfig, onEvent EventCallba
 		}
 	}
 
+	// Emit credential detection event if credentials were parsed from the target
+	// or provided via API fields
+	if creds != nil {
+		emit(pipeline.EventThought, "engine", fmt.Sprintf("Credentials detected — username: %s, target: %s", creds.Username, cleanTarget))
+	} else if cc.Credentials != nil {
+		emit(pipeline.EventThought, "engine", fmt.Sprintf("Credentials provided — username: %s, target: %s", cc.Credentials.Username, cc.Target))
+	}
+
 	// State machine
 	sm := pipeline.NewStateMachine(&campaign, func(e pipeline.CampaignEvent) {
 		if onEvent != nil {
@@ -162,6 +261,11 @@ func (r *Runner) Run(ctx context.Context, cc CampaignConfig, onEvent EventCallba
 	if err != nil {
 		return fmt.Errorf("failed to create LLM provider: %w", err)
 	}
+
+	// Wire community skill recommendations into every agent that supports
+	// them so system prompts are enriched with relevant capabilities from
+	// the openclaw-sec-skills index.
+	injector := skills.NewInjector(0)
 
 	emit(pipeline.EventStateChange, "engine", "Campaign initialized")
 
@@ -188,7 +292,37 @@ func (r *Runner) Run(ctx context.Context, cc CampaignConfig, onEvent EventCallba
 
 	emit(pipeline.EventThought, "orchestrator", fmt.Sprintf("Starting reconnaissance on %s", cc.Target))
 
+	// Build tool options from config so tools inherit the
+	// configured timeouts instead of using hard-coded defaults.
+	toolOpts := tools.Options{
+		"timeout": r.cfg.Tools.DefaultTimeout,
+		"depth":   r.cfg.Tools.Katana.Depth,
+	}
+	if len(r.cfg.Tools.Nuclei.Severity) > 0 {
+		toolOpts["severity"] = r.cfg.Tools.Nuclei.Severity
+	}
+	// Pass parsed credentials to tools for authenticated scanning
+	if cc.Credentials != nil {
+		toolOpts["username"] = cc.Credentials.Username
+		toolOpts["password"] = cc.Credentials.Password
+	}
+
 	coordinator := tools.NewCoordinator()
+	coordinator.SetHooks(&tools.ToolHooks{
+		OnSkip: func(name, target, reason string) {
+			emit(pipeline.EventToolResult, "recon", fmt.Sprintf("Tool %s skipped: %s", name, reason))
+		},
+		OnDone: func(name, target string, result *tools.ToolResult, err error) {
+			if err != nil {
+				emit(pipeline.EventToolResult, "recon", fmt.Sprintf("Tool %s error: %v", name, err))
+			} else if result != nil && result.Error != nil {
+				emit(pipeline.EventToolResult, "recon", fmt.Sprintf("Tool %s failed: %v", name, result.Error))
+			} else if result != nil {
+				outputLen := len(result.RawOutput)
+				emit(pipeline.EventToolResult, "recon", fmt.Sprintf("Tool %s completed: %d bytes output", name, outputLen))
+			}
+		},
+	})
 
 	reconOpts := []recon.Option{
 		recon.WithErrorSink(func(err error) {
@@ -198,6 +332,7 @@ func (r *Runner) Run(ctx context.Context, cc CampaignConfig, onEvent EventCallba
 	if r.strict {
 		reconOpts = append(reconOpts, recon.WithStrict())
 	}
+	reconOpts = append(reconOpts, recon.WithSkillInjector(injector))
 	reconAgent := recon.NewReconAgent(provider, coordinator, reconOpts...)
 	reconPlan := reconAgent.PlanRecon(cc.Target)
 
@@ -206,7 +341,7 @@ func (r *Runner) Run(ctx context.Context, cc CampaignConfig, onEvent EventCallba
 	surface, err := reconAgent.Execute(ctx, reconPlan, &scope.ScopeDefinition{
 		AllowedDomains: scopeDef.AllowedDomains,
 		AllowedCIDRs:   scopeDef.AllowedCIDRs,
-	}, campaignID)
+	}, campaignID, toolOpts)
 	if err != nil {
 		emit(pipeline.EventError, "recon", fmt.Sprintf("Recon failed: %s", err))
 		sm.Fail("recon failed")
@@ -215,6 +350,54 @@ func (r *Runner) Run(ctx context.Context, cc CampaignConfig, onEvent EventCallba
 
 	emit(pipeline.EventToolResult, "recon", fmt.Sprintf("Found %d subdomains, %d hosts, %d endpoints",
 		len(surface.Subdomains), len(surface.Hosts), len(surface.Endpoints)))
+
+	// Expand scope with IPs discovered during reconnaissance.
+	// Without this, subsequent phases (exploit) will fail with scope
+	// violations when trying to target the IPs that were found.
+	for _, host := range surface.Hosts {
+		if host.IP != "" {
+			// Add each discovered IP as a /32 CIDR
+			cidr := host.IP + "/32"
+			found := false
+			for _, existing := range scopeDef.AllowedCIDRs {
+				if existing == cidr {
+					found = true
+					break
+				}
+			}
+			if !found {
+				scopeDef.AllowedCIDRs = append(scopeDef.AllowedCIDRs, cidr)
+			}
+		}
+		// Also add discovered hostnames to allowed domains
+		for _, hostname := range host.Hostnames {
+			found := false
+			for _, existing := range scopeDef.AllowedDomains {
+				if existing == hostname {
+					found = true
+					break
+				}
+			}
+			if !found && hostname != "" {
+				scopeDef.AllowedDomains = append(scopeDef.AllowedDomains, hostname)
+			}
+		}
+	}
+	// Also add discovered subdomains
+	for _, sub := range surface.Subdomains {
+		if sub.Domain != "" {
+			found := false
+			for _, existing := range scopeDef.AllowedDomains {
+				if existing == sub.Domain {
+					found = true
+					break
+				}
+			}
+			if !found {
+				scopeDef.AllowedDomains = append(scopeDef.AllowedDomains, sub.Domain)
+			}
+		}
+	}
 
 	// --- Phase 2: CLASSIFY ---
 	if err := sm.BeginClassifying(); err != nil {
@@ -231,6 +414,7 @@ func (r *Runner) Run(ctx context.Context, cc CampaignConfig, onEvent EventCallba
 	if r.strict {
 		classifierOpts = append(classifierOpts, classifier.WithStrict())
 	}
+	classifierOpts = append(classifierOpts, classifier.WithSkillInjector(injector))
 	classifierAgent := classifier.NewClassifierAgent(provider, classifierOpts...)
 
 	// Build raw findings from attack surface
@@ -275,7 +459,7 @@ func (r *Runner) Run(ctx context.Context, cc CampaignConfig, onEvent EventCallba
 
 	emit(pipeline.EventThought, "orchestrator", "Building attack plan — constructing exploitation chains")
 
-	exploitAgent := exploit.NewExploitAgent(provider)
+	exploitAgent := exploit.NewExploitAgent(provider, exploit.WithExploitSkillInjector(injector))
 
 	var attackPlan *pipeline.AttackPlan
 	if !cc.DryRun && len(findingSet.Findings) > 0 {
@@ -336,6 +520,7 @@ func (r *Runner) Run(ctx context.Context, cc CampaignConfig, onEvent EventCallba
 	emit(pipeline.EventThought, "orchestrator", "Generating penetration test report")
 
 	reportAgent := report.NewReportAgent(provider)
+	reportAgent.WithSkillInjector(injector)
 	pentestReport, err := reportAgent.Generate(ctx, campaign, findingSet.Findings, attackPlan, execResults)
 	if err != nil {
 		emit(pipeline.EventError, "report", fmt.Sprintf("Report generation failed: %s", err))
@@ -351,7 +536,13 @@ func (r *Runner) Run(ctx context.Context, cc CampaignConfig, onEvent EventCallba
 	}
 	os.MkdirAll(outputDir, 0755)
 
-	reportPath := filepath.Join(outputDir, fmt.Sprintf("%s-%s", campaign.Name, campaignID.String()[:8]))
+	// Sanitize the campaign name for use as a filename: strip the
+	// protocol prefix ("https://", "http://") and replace any
+	// remaining path separators / special chars with safe dashes.
+	// Without this, "https://www.pdsu.edu.cn" → "https:/www..."
+	// after filepath.Join, which creates phantom directories.
+	safeName := sanitizeFilename(campaign.Name)
+	reportPath := filepath.Join(outputDir, fmt.Sprintf("%s-%s", safeName, campaignID.String()[:8]))
 
 	if cc.Format == "all" || cc.Format == "md" || cc.Format == "" {
 		md, _ := renderer.ToMarkdown(pentestReport)
@@ -420,6 +611,7 @@ func buildScope(scopes []string) (*scope.ScopeDefinition, error) {
 
 func extractRawFindings(surface *pipeline.AttackSurface, campaignID uuid.UUID) []pipeline.RawFinding {
 	var findings []pipeline.RawFinding
+	seen := make(map[string]bool) // dedup key → true
 
 	for _, host := range surface.Hosts {
 		for _, port := range host.OpenPorts {
@@ -428,6 +620,11 @@ func extractRawFindings(surface *pipeline.AttackSurface, campaignID uuid.UUID) [
 			if svc.Name != "" {
 				detail = fmt.Sprintf("Port %d open — %s %s", port, svc.Name, svc.Version)
 			}
+			dedupKey := fmt.Sprintf("port:%s:%d", host.IP, port)
+			if seen[dedupKey] {
+				continue
+			}
+			seen[dedupKey] = true
 			findings = append(findings, pipeline.RawFinding{
 				ID:           uuid.New(),
 				CampaignID:   campaignID,
@@ -442,6 +639,11 @@ func extractRawFindings(surface *pipeline.AttackSurface, campaignID uuid.UUID) [
 
 	for _, ep := range surface.Endpoints {
 		if ep.Interesting {
+			dedupKey := fmt.Sprintf("ep:%s", ep.URL)
+			if seen[dedupKey] {
+				continue
+			}
+			seen[dedupKey] = true
 			findings = append(findings, pipeline.RawFinding{
 				ID:           uuid.New(),
 				CampaignID:   campaignID,
@@ -455,6 +657,11 @@ func extractRawFindings(surface *pipeline.AttackSurface, campaignID uuid.UUID) [
 	}
 
 	for tech, version := range surface.Technologies {
+		dedupKey := fmt.Sprintf("tech:%s", tech)
+		if seen[dedupKey] {
+			continue
+		}
+		seen[dedupKey] = true
 		findings = append(findings, pipeline.RawFinding{
 			ID:           uuid.New(),
 			CampaignID:   campaignID,
@@ -488,6 +695,100 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// sanitizeFilename replaces characters that are unsafe in file names
+// with dashes. It handles the common case of URL targets leaking into
+// campaign names (e.g. "scan-https://www.example.com" → "scan-https-www.example.com").
+func sanitizeFilename(name string) string {
+	// Strip protocol prefixes that contain "://"
+	replacer := strings.NewReplacer(
+		"://", "-",
+		"/", "-",
+		"\\", "-",
+		":", "-",
+		"*", "-",
+		"?", "-",
+		"\"", "-",
+		"<", "-",
+		">", "-",
+		"|", "-",
+	)
+	return replacer.Replace(name)
+}
+
+// sanitizeTarget strips the protocol prefix from a URL target
+// so it can be safely used in file names.
+// e.g. "https://www.example.com" → "www.example.com"
+func sanitizeTarget(target string) string {
+	t := target
+	t = strings.TrimPrefix(t, "https://")
+	t = strings.TrimPrefix(t, "http://")
+	// Remove credential suffixes like " 用户名xxx密码yyy"
+	if idx := strings.IndexFunc(t, func(r rune) bool { return r == ' ' || r == '\t' }); idx != -1 {
+		t = t[:idx]
+	}
+	return t
+}
+
+// ParsedCredentials holds username/password extracted from the target string.
+type ParsedCredentials struct {
+	Username string
+	Password string
+}
+
+// parseCredentials extracts credentials from a target string that contains
+// patterns like "用户名xxx密码yyy" or "username:xxx password:yyy" and returns
+// the cleaned URL and the extracted credentials.
+func parseCredentials(target string) (cleanURL string, creds *ParsedCredentials) {
+	cleanURL = target
+	creds = nil
+
+	// Pattern 1: Chinese "用户名xxx密码yyy"
+	if idx := strings.Index(target, "用户名"); idx != -1 {
+		rest := target[idx+len("用户名"):]
+		username := rest
+		password := ""
+
+		if pidx := strings.Index(rest, "密码"); pidx != -1 {
+			username = rest[:pidx]
+			password = rest[pidx+len("密码"):]
+		}
+
+		cleanURL = strings.TrimSpace(target[:idx])
+		creds = &ParsedCredentials{
+			Username: strings.TrimSpace(username),
+			Password: strings.TrimSpace(password),
+		}
+		return
+	}
+
+	// Pattern 2: English "username:xxx password:yyy" or "user:xxx pass:yyy"
+	lower := strings.ToLower(target)
+	for _, prefix := range []string{"username:", "user:", "username "} {
+		if idx := strings.Index(lower, prefix); idx != -1 {
+			rest := target[idx+len(prefix):]
+			username := rest
+			password := ""
+
+			for _, pp := range []string{"password:", "pass:", "password ", "pass "} {
+				if pidx := strings.Index(strings.ToLower(rest), pp); pidx != -1 {
+					username = rest[:pidx]
+					password = rest[pidx+len(pp):]
+					break
+				}
+			}
+
+			cleanURL = strings.TrimSpace(target[:idx])
+			creds = &ParsedCredentials{
+				Username: strings.TrimSpace(username),
+				Password: strings.TrimSpace(password),
+			}
+			return
+		}
+	}
+
+	return
 }
 
 // Ensure json import is used (for future DB persistence)

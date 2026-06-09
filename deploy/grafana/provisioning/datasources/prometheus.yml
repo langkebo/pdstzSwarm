@@ -1,0 +1,17 @@
+# P5+ 观测 Grafana provisioning.
+#
+# These two files auto-provision Grafana so a fresh `docker
+# compose up` shows the Swarm dashboard immediately, with no
+# manual "Add data source" / "Import dashboard" steps.
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    orgId: 1
+    url: http://prometheus:9090
+    isDefault: true
+    version: 1
+    editable: true

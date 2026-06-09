@@ -36,6 +36,11 @@ type Scheduler struct {
 	// second. Missing entries → no limit (preserve historical behavior).
 	// See WithAgentRateLimit.
 	agentLimits map[string]*ratelimit.Limiter
+
+	// monitor is the optional 3-layer tool-call guard. When non-nil and
+	// Enabled(), every agent Handle is gated by Monitor.Allow. See
+	// internal/swarm/monitor.go for the cap semantics.
+	monitor *Monitor
 }
 
 // Event is a structured scheduler event emitted via the onEvent hook.
@@ -83,6 +88,20 @@ func WithAgentRateLimit(agentName string, perSecond, burst float64) SchedulerOpt
 			s.agentLimits = map[string]*ratelimit.Limiter{}
 		}
 		s.agentLimits[agentName] = ratelimit.New(perSecond, burst)
+	}
+}
+
+// WithMonitor installs a per-campaign 3-layer tool-call guard. When the
+// monitor is Enabled() and any cap trips, the affected agent's Handle
+// is skipped, a TypeAgentError finding is written to the blackboard,
+// and the cursor is NOT advanced so a future campaign can re-pick the
+// finding after the operator raises the cap. Inspired by ptagent's
+// EXECUTION_MONITOR_* family of environment variables.
+func WithMonitor(m *Monitor) SchedulerOption {
+	return func(s *Scheduler) {
+		if m != nil {
+			s.monitor = m
+		}
 	}
 }
 
@@ -282,6 +301,35 @@ func (s *Scheduler) runAgent(ctx context.Context, agent Agent) {
 				defer inflight.Done()
 				defer func() { <-sem }()
 				start := time.Now()
+				// 3-layer tool-call monitor (ptagent-inspired). On trip,
+				// we skip the Handle but still advance the cursor so we
+				// don't loop forever on the same finding. The
+				// TypeAgentError finding is written so an operator or
+				// error-recovery agent can react.
+				if s.monitor != nil {
+					if err := s.monitor.Allow(agent.Name(), agentToolKey(agent, finding)); err != nil {
+						s.emit(Event{
+							Type: "agent_error", Timestamp: time.Now(), CampaignID: s.campaignID,
+							AgentName: agent.Name(), FindingID: finding.ID,
+							Detail: "monitor: " + err.Error(),
+						})
+						errData, _ := json.Marshal(map[string]string{
+							"agent": agent.Name(), "error": err.Error(),
+							"kind": "monitor_trip",
+						})
+						_, _ = s.board.Write(ctx, blackboard.Finding{
+							CampaignID:    s.campaignID,
+							AgentName:     agent.Name(),
+							Type:          blackboard.TypeAgentError,
+							Target:        finding.Target,
+							Data:          errData,
+							PheromoneBase: 0.3,
+							HalfLifeSec:   600,
+						})
+						_ = s.board.CommitCursor(ctx, s.campaignID, agent.Name(), finding.ID)
+						return
+					}
+				}
 				s.emit(Event{
 					Type: "agent_started", Timestamp: start, CampaignID: s.campaignID,
 					AgentName: agent.Name(), FindingID: finding.ID,
@@ -327,6 +375,16 @@ func (s *Scheduler) runAgent(ctx context.Context, agent Agent) {
 			}(f)
 		}
 	}
+}
+
+// agentToolKey derives a stable per-agent tool name for the monitor
+// counter. Most agents consume a single finding type at a time so the
+// finding type itself is a good proxy for "which tool did we just
+// dispatch". Agents that drive multiple tools per Handle can return a
+// richer key from a future interface; for now the finding type keeps
+// the contract simple and testable.
+func agentToolKey(_ Agent, f blackboard.Finding) string {
+	return string(f.Type)
 }
 
 func (s *Scheduler) emit(e Event) {

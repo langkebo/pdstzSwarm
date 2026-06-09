@@ -25,7 +25,7 @@ func (g *GauTool) Run(ctx context.Context, target string, opts Options) (*ToolRe
 		}
 	}
 
-	timeout := time.Duration(opts.GetInt("timeout", 60)) * time.Second
+	timeout := time.Duration(opts.GetInt("timeout", 120)) * time.Second
 
 	args := []string{target, "--json"}
 

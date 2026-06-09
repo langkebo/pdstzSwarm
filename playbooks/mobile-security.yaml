@@ -1,0 +1,90 @@
+name: Mobile Application Security
+description: >
+  Mobile application security testing playbook covering Android (APK)
+  and iOS (IPA) applications. Includes static analysis, dynamic runtime
+  inspection, API traffic interception, and local storage review.
+author:
+  name: Pentest-Swarm AI
+  github: Armur-Ai
+version: 1.0.0
+tags: [mobile, android, ios, authorized-only]
+
+variables:
+  scope_file:
+    type: string
+    required: true
+    description: Path to the signed scope YAML authorising this engagement
+  target_apk:
+    type: string
+    required: false
+    description: Path to the target Android APK file
+  target_ipa:
+    type: string
+    required: false
+    description: Path to the target iOS IPA file
+  platform:
+    type: string
+    required: true
+    description: "android | ios | both"
+
+phases:
+  - name: static_analysis
+    tools:
+      - name: nuclei
+        options:
+          templates:
+            - "mobile/static/"
+            - "mobile/misconfiguration/"
+    post_analysis: |
+      Decompile the application. Check AndroidManifest.xml for exported
+      components, debuggable flags, backup mode, and permission hygiene.
+      For iOS, review Info.plist for ATS exceptions, URL schemes, and
+      insecure transport configurations.
+
+  - name: hardcoded_secrets
+    tools:
+      - name: nuclei
+        options:
+          templates:
+            - "exposures/secrets/"
+            - "mobile/secrets/"
+    post_analysis: |
+      Scan for hardcoded API keys, tokens, passwords, cryptographic
+      material, and internal endpoints. Flag any production credentials
+      as critical severity.
+
+  - name: api_traffic
+    tools:
+      - name: nuclei
+        options:
+          templates:
+            - "mobile/api/"
+            - "generic-detections/ssl/"
+    post_analysis: |
+      Intercept and analyze API traffic. Check for certificate pinning
+      bypass potential, cleartext HTTP traffic, missing certificate
+      validation, and sensitive data in request/response bodies.
+
+  - name: local_storage
+    tools:
+      - name: nuclei
+        options:
+          templates:
+            - "mobile/storage/"
+            - "mobile/data-leakage/"
+    post_analysis: |
+      Review SharedPreferences, SQLite databases, Realm, UserDefaults,
+      Keychain usage, and file system caches. Flag PII, session tokens,
+      and credentials stored without encryption.
+
+  - name: runtime_protection
+    tools:
+      - name: nuclei
+        options:
+          templates:
+            - "mobile/runtime/"
+            - "mobile/root-detection/"
+    post_analysis: |
+      Evaluate root/jailbreak detection, emulator detection, code
+      obfuscation, anti-tampering, and anti-debugging controls.
+      Assess whether protections are trivially bypassable.

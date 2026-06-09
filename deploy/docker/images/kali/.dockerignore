@@ -1,0 +1,52 @@
+# P3-1: psa-kali build context exclusions.
+#
+# Keeping the build context small matters because
+# `docker build` uploads the entire context to the
+# daemon before processing. The psa-kali image only
+# needs the Dockerfile, the entrypoint script, and
+# this .dockerignore.
+#
+# Anything below is matched by Go's filepath.Match
+# semantics (not regex). Patterns are case-sensitive
+# on Linux.
+
+# Editor / OS junk
+**/.DS_Store
+**/.git
+**/.gitignore
+**/.vscode
+**/.idea
+**/*.swp
+**/*.swo
+
+# The MANIFEST.md and README.md are documentation for
+# humans, not build inputs. The Dockerfile doesn't
+# COPY them. Keeping them out of the context cuts the
+# upload by ~15 KB.
+MANIFEST.md
+README.md
+build.sh
+
+# Anything not explicitly COPY'd by the Dockerfile.
+# Defense in depth — if a future change accidentally
+# adds `COPY . .` we'd skip the build-arg variants
+# below anyway, but excluding here makes the
+# blast-radius explicit.
+*.go
+*.c
+*.h
+*.o
+*.a
+*.so
+go.mod
+go.sum
+
+# Test outputs that might be lying around
+**/coverage.out
+**/coverage.html
+**/*.test
+**/*.prof
+
+# VCS metadata
+**/.gitattributes
+**/.github

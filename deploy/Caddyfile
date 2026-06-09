@@ -1,0 +1,100 @@
+# Pentest Swarm AI — production reverse proxy
+#
+# Drop this in front of the swarm for HTTPS termination. The
+# swarm listens on 8081 (plain HTTP inside the docker network);
+# Caddy handles TLS, ACME, and HSTS so the operator doesn't
+# have to maintain a cert.
+#
+# Quick start
+# -----------
+#
+#   # 1. Edit the two hostnames below (psa.example.com,
+#   #    api.example.com).
+#   # 2. Make sure DNS points to your server.
+#   # 3. `caddy run --config deploy/Caddyfile`
+#   # 4. Caddy issues certs on first run, then auto-renews.
+#
+# Why a reverse proxy
+# -------------------
+#
+#   - TLS termination (Let's Encrypt via the ACME DNS-01 or
+#     HTTP-01 challenge).
+#   - HTTP/2 + HTTP/3 (QUIC) for the long-lived WebSocket
+#     streams used by /ws and /mcp/sse.
+#   - Path-based routing: the API lives at /api/v1/*, the
+#     dashboard at /*, and /mcp/sse is a passthrough that
+#     must NOT be buffered.
+#   - Security headers: HSTS, X-Content-Type-Options,
+#     Referrer-Policy — easier to centralise in Caddy than in
+#     the Go binary.
+
+# Global options
+{
+    # ACME staging URL until you confirm DNS works:
+    #     acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+    email ops@pentest-swarm.ai
+    admin off
+    # Persistent state (certs, OCSP cache) lives in
+    # /data inside the container; mount a volume there.
+    storage {
+        storage_type s3
+        # Or just `storage_file_system` for a single-host
+        # deployment.
+    }
+}
+
+# Dashboard + API. The swarm container serves both.
+psa.example.com {
+    encode zstd gzip
+
+    # Security headers — applied to every response.
+    header {
+        # HSTS: enforce HTTPS for 6 months. Browsers will
+        # refuse to load the site over plain HTTP for the
+        # duration.
+        Strict-Transport-Security "max-age=15552000; includeSubDomains"
+        # Block MIME-type sniffing (drive-by downloads).
+        X-Content-Type-Options "nosniff"
+        # Don't leak the dashboard URL to other sites.
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Conservative default; relax per-route if you
+        # embed the dashboard in an iframe.
+        X-Frame-Options "DENY"
+        # Disable powerful features we don't need.
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        # Caddy removes the Server header by default; this
+        # confirms it.
+        -Server
+    }
+
+    # /api/v1/* — JSON API, /api/v1/health etc.
+    reverse_proxy localhost:8081 {
+        # Preserve the original Host so the orchestrator
+        # provider's URL detection works.
+        header_up Host {host}
+        # Forward the original scheme.
+        header_up X-Forwarded-Proto {scheme}
+        # Stream responses (no buffering) so SSE/WebSocket
+        # upgrades don't sit in the proxy buffer.
+        flush_interval -1
+        # Long-lived transport pool.
+        transport http {
+            dial_timeout 5s
+            response_header_timeout 30s
+            read_timeout 600s   # scans can run for 10 min
+            write_timeout 600s
+        }
+    }
+}
+
+# Optional: separate hostname for the API (used by the CLI's
+# `pentestswarm scan` workflow that doesn't need a dashboard).
+# Comment out if you don't need it.
+api.example.com {
+    encode zstd gzip
+    reverse_proxy localhost:8081 {
+        header_up Host {host}
+        header_up X-Forwarded-Proto {scheme}
+        flush_interval -1
+    }
+}

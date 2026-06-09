@@ -26,7 +26,7 @@ func (k *KatanaTool) Run(ctx context.Context, target string, opts Options) (*Too
 		}
 	}
 
-	timeout := time.Duration(opts.GetInt("timeout", 60)) * time.Second
+	timeout := time.Duration(opts.GetInt("timeout", 120)) * time.Second
 	depth := opts.GetInt("depth", 3)
 
 	args := []string{"-u", target, "-jsonl", "-silent", "-d", strconv.Itoa(depth)}

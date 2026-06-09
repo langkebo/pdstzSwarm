@@ -45,7 +45,7 @@ func TestFullCampaign(t *testing.T) {
 	}
 	t.Logf("  Recon plan: %v", plan.ToolOrder)
 
-	surface, err := reconAgent.Execute(ctx, plan, scopeDef, campaignID)
+	surface, err := reconAgent.Execute(ctx, plan, scopeDef, campaignID, tools.Options{})
 	if err != nil {
 		t.Fatalf("Recon failed: %v", err)
 	}

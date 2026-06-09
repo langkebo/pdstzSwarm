@@ -5,14 +5,20 @@ import (
 	"fmt"
 	"time"
 
+	aisafetypkg "github.com/Armur-Ai/Pentest-Swarm-AI/internal/agent/aisafety"
 	classifierpkg "github.com/Armur-Ai/Pentest-Swarm-AI/internal/agent/classifier"
 	exploitpkg "github.com/Armur-Ai/Pentest-Swarm-AI/internal/agent/exploit"
+	forensicspkg "github.com/Armur-Ai/Pentest-Swarm-AI/internal/agent/forensics"
+	mobilepkg "github.com/Armur-Ai/Pentest-Swarm-AI/internal/agent/mobile"
+	orchestratorpkg "github.com/Armur-Ai/Pentest-Swarm-AI/internal/agent/orchestrator"
+	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/agent/prompts"
 	reconpkg "github.com/Armur-Ai/Pentest-Swarm-AI/internal/agent/recon"
 	reportpkg "github.com/Armur-Ai/Pentest-Swarm-AI/internal/agent/report"
-	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/agent/prompts"
+	reversepkg "github.com/Armur-Ai/Pentest-Swarm-AI/internal/agent/reverse"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/llm"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/pipeline"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/scope"
+	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/skills"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/swarm"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/swarm/agents"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/swarm/blackboard"
@@ -87,6 +93,14 @@ func (r *Runner) RunSwarm(ctx context.Context, cc CampaignConfig, onEvent EventC
 	// both the live-spend events and the final ROI footer.
 	meter := llm.NewMeter(orchestratorCfg.Model)
 	provider := meter.Wrap(rawProvider)
+	// Then run any observability decorator (LangFuse ObservingProvider,
+	// etc.) on top of the cost-metered provider. The decorator
+	// records the same Complete/Stream calls; meter + decorator
+	// compose cleanly because they share the same llm.Provider
+	// surface.
+	if r.providerDecorator != nil {
+		provider = r.providerDecorator(provider)
+	}
 
 	emit(pipeline.EventStateChange, "engine", "Swarm campaign initialized")
 
@@ -137,11 +151,36 @@ func (r *Runner) RunSwarm(ctx context.Context, cc CampaignConfig, onEvent EventC
 		reconOpts = append(reconOpts, reconpkg.WithStrict())
 		classifierOpts = append(classifierOpts, classifierpkg.WithStrict())
 	}
+	// Wire community skill recommendations into every agent that supports
+	// them so that system prompts are enriched with relevant capabilities
+	// from the openclaw-sec-skills index.
+	injector := skills.NewInjector(0)
+	reconOpts = append(reconOpts, reconpkg.WithSkillInjector(injector))
+	classifierOpts = append(classifierOpts, classifierpkg.WithSkillInjector(injector))
 	reconInner := reconpkg.NewReconAgent(provider, coordinator, reconOpts...)
 	classifierInner := classifierpkg.NewClassifierAgent(provider, classifierOpts...)
-	exploitInner := exploitpkg.NewExploitAgent(provider)
+	exploitInner := exploitpkg.NewExploitAgent(provider, exploitpkg.WithExploitSkillInjector(injector))
 	reportInner := reportpkg.NewReportAgent(provider)
+	reportInner.WithSkillInjector(injector)
 	renderer := reportpkg.NewRenderer()
+
+	// New specialist agents (Phase 2: 4 → 9 agents).
+	reverseInner := reversepkg.New(provider)
+	reverseInner.WithSkillInjector(injector)
+	mobileInner := mobilepkg.New(provider)
+	mobileInner.WithSkillInjector(injector)
+	forensicsInner := forensicspkg.New(provider)
+	forensicsInner.WithSkillInjector(injector)
+	aisafetyInner := aisafetypkg.New(provider)
+	aisafetyInner.WithSkillInjector(injector)
+
+	orchestratorAgent := orchestratorpkg.NewOrchestratorAgent(orchestratorpkg.OrchestratorConfig{
+		Provider:      provider,
+		SkillInjector: injector,
+		EventSink: func(e pipeline.CampaignEvent) {
+			emit(e.EventType, e.AgentName, e.Detail)
+		},
+	})
 
 	executor := exploitpkg.NewExecutor(
 		&scope.ScopeDefinition{AllowedDomains: scopeDef.AllowedDomains, AllowedCIDRs: scopeDef.AllowedCIDRs},
@@ -170,6 +209,12 @@ func (r *Runner) RunSwarm(ctx context.Context, cc CampaignConfig, onEvent EventC
 					emit(pipeline.EventToolResult, "report", fmt.Sprintf("%s report: %s", k, p))
 				}
 			}).WithROI(func() float64 { _, s := meter.Snapshot(); return s }, nil),
+		agents.NewReverseAgent(reverseInner, campaignID, 2, tuningSettings),
+		agents.NewMobileAgent(mobileInner, campaignID, 2, tuningSettings),
+		agents.NewForensicsAgent(forensicsInner, campaignID, 2, tuningSettings),
+		agents.NewAISafetyAgent(aisafetyInner, campaignID, 2, tuningSettings),
+		// Orchestrator monitors the board and injects strategy adjustments.
+		agents.NewOrchestratorAgent(orchestratorAgent, campaignID, cc.Objective),
 	}
 
 	sched := swarm.NewScheduler(board, campaignID,

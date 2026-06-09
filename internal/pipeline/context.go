@@ -58,6 +58,19 @@ type ScopeDefinition struct {
 	ExcludedCIDRs  []string `json:"excluded_cidrs,omitempty"`
 }
 
+// MarshalJSON ensures nil slices are serialized as [] instead of null.
+func (s ScopeDefinition) MarshalJSON() ([]byte, error) {
+	type Alias ScopeDefinition
+	a := Alias(s)
+	if a.AllowedCIDRs == nil {
+		a.AllowedCIDRs = []string{}
+	}
+	if a.AllowedDomains == nil {
+		a.AllowedDomains = []string{}
+	}
+	return json.Marshal(a)
+}
+
 // Scan implements the sql.Scanner interface for database storage.
 func (s *ScopeDefinition) Scan(src any) error {
 	if src == nil {

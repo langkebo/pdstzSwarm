@@ -43,6 +43,22 @@ const (
 
 	// Generated artefacts — nuclei templates, playbook drafts, etc.
 	TypeNucleiTemplateDraft FindingType = "NUCLEI_TEMPLATE_DRAFT"
+
+	// Reverse-engineering phase findings
+	TypeBinaryArtifact  FindingType = "BINARY_ARTIFACT"
+	TypeReverseAnalysis FindingType = "REVERSE_ANALYSIS"
+
+	// Mobile-security phase findings
+	TypeMobileArtifact FindingType = "MOBILE_ARTIFACT"
+	TypeMobileAnalysis FindingType = "MOBILE_ANALYSIS"
+
+	// Forensics / incident-response phase findings
+	TypeForensicArtifact FindingType = "FORENSIC_ARTIFACT"
+	TypeForensicAnalysis FindingType = "FORENSIC_ANALYSIS"
+
+	// AI-safety phase findings
+	TypeAISystemArtifact FindingType = "AI_SYSTEM_ARTIFACT"
+	TypeAISafetyAnalysis FindingType = "AI_SAFETY_ANALYSIS"
 )
 
 // Finding is a single atomic piece of shared state on the blackboard.
@@ -61,6 +77,13 @@ type Finding struct {
 	// Pheromone is the current decayed weight (0.0–1.0), computed at read time.
 	// Only populated by Query / Subscribe; not persisted.
 	Pheromone float64 `json:"pheromone,omitempty"`
+
+	// Embedding is the semantic vector for similarity search. Populated
+	// by the AutoEmbedHook (or any EmbedHook) on Write when an embedder
+	// is attached. nil means "no embedding" — the row is stored with a
+	// NULL pgvector column. Dimensions are declared by the embedder;
+	// the pgvector column must match (see migration 000002_pgvector.sql).
+	Embedding []float32 `json:"embedding,omitempty"`
 }
 
 // Predicate selects findings from the blackboard. All set conditions must

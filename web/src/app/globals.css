@@ -2,56 +2,373 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ------------------------------------------------------------------ */
+/* Design tokens — kept in sync with tailwind.config.ts                */
+/* ------------------------------------------------------------------ */
+
 :root {
-  --background: #0A0A0F;
-  --surface: #12121A;
-  --border: #1A1A2E;
-  --text-primary: #E0E0E0;
-  --text-secondary: #8B8B9E;
-  --accent: #60A5FA;
+  --background: #0a0a0f;
+  --surface: #12121a;
+  --surface-2: #161624;
+  --surface-hover: #1e1e30;
+  --border: #1a1a2e;
+  --border-strong: #2a2a40;
+  --border-active: #60a5fa;
+
+  --accent: #00ff9c;
+  --accent-dim: #00b872;
+  --accent-2: #60a5fa;
+  --accent-3: #a78bfa;
+
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-code: #00ff9c;
+
+  --severity-critical: #ff3366;
+  --severity-high: #ff6b35;
+  --severity-medium: #ffc107;
+  --severity-low: #00ff9c;
+  --severity-info: #6b7280;
+
+  --glass-bg: rgba(18, 18, 26, 0.55);
+  --glass-bg-strong: rgba(18, 18, 26, 0.78);
+  --glass-border: rgba(96, 165, 250, 0.18);
+  --glass-border-strong: rgba(96, 165, 250, 0.34);
 }
 
 html {
   color-scheme: dark;
 }
 
+html,
 body {
   background: var(--background);
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Scrollbar */
+/* ------------------------------------------------------------------ */
+/* Scrollbar — terminal style                                          */
+/* ------------------------------------------------------------------ */
+
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--surface);
+  background: var(--background);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
+  background: var(--border-strong);
+  border-radius: 4px;
+  border: 2px solid var(--background);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-2);
 }
 
-/* Terminal-style text */
-.terminal-text {
-  font-family: "JetBrains Mono", "Fira Code", monospace;
-  font-size: 0.85rem;
-  line-height: 1.5;
+/* ------------------------------------------------------------------ */
+/* Selection                                                           */
+/* ------------------------------------------------------------------ */
+
+::selection {
+  background: rgba(0, 255, 156, 0.25);
+  color: var(--text-primary);
 }
 
-/* Severity badges */
-.badge-critical { @apply bg-red-500/20 text-red-400 border border-red-500/30; }
-.badge-high { @apply bg-orange-500/20 text-orange-400 border border-orange-500/30; }
-.badge-medium { @apply bg-yellow-500/20 text-yellow-400 border border-yellow-500/30; }
-.badge-low { @apply bg-green-500/20 text-green-400 border border-green-500/30; }
-.badge-info { @apply bg-gray-500/20 text-gray-400 border border-gray-500/30; }
+/* ------------------------------------------------------------------ */
+/* Base components                                                     */
+/* ------------------------------------------------------------------ */
 
-/* Pulsing animation for active agents */
+@layer components {
+  /* Glass surface used for all primary panels (login, dashboard cards,
+   * live panels). Two strengths: a soft variant for nested cards and a
+   * strong variant for prominent surfaces like the login form. */
+  .glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+      0 8px 32px rgba(0, 0, 0, 0.35);
+  }
+  .glass-panel-strong {
+    background: var(--glass-bg-strong);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid var(--glass-border-strong);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+      0 16px 48px rgba(0, 0, 0, 0.5);
+  }
+  .glass-panel-hover {
+    transition:
+      border-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .glass-panel-hover:hover {
+    border-color: var(--accent-2);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+      0 0 0 1px rgba(96, 165, 250, 0.3),
+      0 12px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Tech border — used on hero cards and the live console. The four
+   * ASCII corners are drawn with conic gradients so they survive any
+   * border-radius. */
+  .tech-border {
+    position: relative;
+  }
+  .tech-border::before,
+  .tech-border::after {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    pointer-events: none;
+  }
+  .tech-border::before {
+    top: -1px;
+    left: -1px;
+    border-top: 1px solid var(--accent);
+    border-left: 1px solid var(--accent);
+  }
+  .tech-border::after {
+    bottom: -1px;
+    right: -1px;
+    border-bottom: 1px solid var(--accent);
+    border-right: 1px solid var(--accent);
+  }
+
+  /* Mono terminal text. */
+  .terminal-text {
+    font-family: var(--font-jetbrains-mono), "JetBrains Mono", "Fira Code",
+      ui-monospace, monospace;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    font-feature-settings: "calt" 1, "ss01" 1;
+  }
+
+  /* Severity badges — kept here so JSX stays terse. Each variant uses
+   *  a 1px solid + 10% tint background. */
+  .badge-critical {
+    @apply bg-severity-critical/15 text-[color:var(--severity-critical)] border border-severity-critical/40;
+  }
+  .badge-high {
+    @apply bg-severity-high/15 text-[color:var(--severity-high)] border border-severity-high/40;
+  }
+  .badge-medium {
+    @apply bg-severity-medium/15 text-[color:var(--severity-medium)] border border-severity-medium/40;
+  }
+  .badge-low {
+    @apply bg-severity-low/15 text-[color:var(--severity-low)] border border-severity-low/40;
+  }
+  .badge-info {
+    @apply bg-severity-info/15 text-[color:var(--severity-info)] border border-severity-info/40;
+  }
+
+  /* Status pills for campaign lifecycle. */
+  .status-running {
+    @apply bg-accent/15 text-accent border border-accent/40;
+  }
+  .status-pending {
+    @apply bg-accent-2/15 text-accent-2 border border-accent-2/40;
+  }
+  .status-complete {
+    @apply bg-emerald-500/15 text-emerald-400 border border-emerald-500/40;
+  }
+  .status-failed {
+    @apply bg-rose-500/15 text-rose-400 border border-rose-500/40;
+  }
+  .status-paused {
+    @apply bg-amber-500/15 text-amber-400 border border-amber-500/40;
+  }
+
+  /* Cyberpunk-style primary button. */
+  .btn-cyber {
+    @apply relative inline-flex items-center justify-center gap-2 px-4 py-2
+      font-mono text-sm uppercase tracking-wider
+      bg-accent/10 text-accent border border-accent/40
+      transition-all duration-150
+      hover:bg-accent/20 hover:border-accent hover:shadow-glow-cyan
+      active:translate-y-px
+      disabled:opacity-50 disabled:cursor-not-allowed
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60
+      focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+  .btn-cyber-solid {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2
+      font-mono text-sm uppercase tracking-wider text-black
+      bg-gradient-cyan border border-accent
+      transition-all duration-150
+      hover:shadow-glow-cyan
+      active:translate-y-px
+      disabled:opacity-50 disabled:cursor-not-allowed
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60
+      focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-3 py-2
+      font-mono text-xs uppercase tracking-wider
+      text-text-secondary border border-border
+      transition-all duration-150
+      hover:text-text-primary hover:border-border-strong hover:bg-surface-hover
+      focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-2;
+  }
+
+  /* Hacker input — dark with mono font and cyan focus ring. */
+  .input-cyber {
+    @apply w-full bg-background/80 border border-border rounded-md
+      px-3 py-2 font-mono text-sm text-text-primary
+      placeholder:text-text-muted
+      transition-colors duration-150
+      focus:outline-none focus:border-accent focus:bg-background
+      focus:shadow-[0_0_0_1px_rgba(0,255,156,0.35),0_0_18px_rgba(0,255,156,0.12)];
+  }
+  .label-cyber {
+    @apply block text-[10px] font-mono uppercase tracking-[0.18em]
+      text-text-muted mb-1.5;
+  }
+
+  /* ASCII corner brackets used in the login hero / live console. */
+  .ascii-frame {
+    @apply pointer-events-none absolute inset-0;
+  }
+  .ascii-frame > span {
+    @apply absolute font-mono text-accent/70 text-[10px] leading-none;
+  }
+  .ascii-frame .tl {
+    top: 6px;
+    left: 6px;
+  }
+  .ascii-frame .tr {
+    top: 6px;
+    right: 6px;
+  }
+  .ascii-frame .bl {
+    bottom: 6px;
+    left: 6px;
+  }
+  .ascii-frame .br {
+    bottom: 6px;
+    right: 6px;
+  }
+
+  /* Status dot for agents / campaigns. */
+  .status-dot {
+    @apply inline-block w-2 h-2 rounded-full;
+  }
+  .status-dot-online {
+    @apply status-dot bg-accent shadow-[0_0_8px_rgba(0,255,156,0.6)] animate-status-pulse;
+  }
+  .status-dot-idle {
+    @apply status-dot bg-text-muted;
+  }
+  .status-dot-error {
+    @apply status-dot bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)];
+  }
+
+  /* Card with a top status stripe. The stripe color is set via the
+   * inline style on the element; we only own the geometry. */
+  .card-with-stripe {
+    @apply glass-panel glass-panel-hover rounded-lg relative overflow-hidden;
+  }
+  .card-with-stripe::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: var(--stripe, var(--accent));
+    opacity: 0.6;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Utilities — backgrounds and effects                                 */
+/* ------------------------------------------------------------------ */
+
+@layer utilities {
+  /* Matrix rain backdrop, used on the login + main hero. The
+   * animation is driven by an absolutely positioned canvas; the
+   * utility just sets the layering context. */
+  .bg-tech-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .bg-tech-noise {
+    /* tiny pseudo-noise via a SVG turbulence mask, intentional */
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.04 0 0 0 0 0.05 0 0 0 0 0.07 0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    background-size: 160px 160px;
+  }
+
+  /* CRT scan lines — subtle, pointer-events: none so the layer
+   * never intercepts clicks. */
+  .crt-scanlines {
+    position: relative;
+  }
+  .crt-scanlines::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      180deg,
+      rgba(0, 255, 156, 0.04) 0px,
+      rgba(0, 255, 156, 0.04) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode: screen;
+  }
+
+  /* Text gradient utility — for hero headlines. */
+  .text-gradient-cyan {
+    @apply bg-gradient-to-r from-accent via-accent-2 to-accent-3
+      bg-clip-text text-transparent;
+  }
+
+  /* Mono numerics — for KPI digits. */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Pulsing borders for live / active items                             */
+/* ------------------------------------------------------------------ */
+
 @keyframes pulse-border {
-  0%, 100% { border-color: rgba(96, 165, 250, 0.3); }
-  50% { border-color: rgba(96, 165, 250, 0.8); }
+  0%,
+  100% {
+    border-color: rgba(0, 255, 156, 0.25);
+  }
+  50% {
+    border-color: rgba(0, 255, 156, 0.8);
+  }
 }
 .agent-active {
   animation: pulse-border 2s ease-in-out infinite;
+}
+
+/* ------------------------------------------------------------------ */
+/* Reduced-motion support — disable all infinite animations.            */
+/* ------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

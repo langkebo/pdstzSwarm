@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/llm"
 	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/pipeline"
+	"github.com/Armur-Ai/Pentest-Swarm-AI/internal/skills"
 )
 
 // OrchestratorAgent coordinates all specialist agents using a ReAct loop.
@@ -16,7 +18,10 @@ type OrchestratorAgent struct {
 	budgetManager *llm.BudgetManager
 	tools         map[string]OrchestratorTool
 	maxIterations int
+	maxTokens     int
+	temperature   float64
 	eventSink     func(pipeline.CampaignEvent)
+	skillInjector *skills.Injector // nil → skill injection disabled
 }
 
 // OrchestratorTool is a function the orchestrator can call.
@@ -28,10 +33,20 @@ type OrchestratorTool struct {
 }
 
 // OrchestratorConfig configures the orchestrator.
+//
+// New fields (Summarizer, MaxTokens, Temperature) default to the
+// pre-P3-2 hard-coded values when left zero, so callers that build the
+// agent with the old shape (Provider + MaxIterations + EventSink) keep
+// working unchanged. To opt into parameterised summarisation, set
+// Summarizer to a non-nil *llm.Summarizer.
 type OrchestratorConfig struct {
 	Provider      llm.Provider
 	MaxIterations int
 	EventSink     func(pipeline.CampaignEvent) // callback for real-time event streaming
+	Summarizer    *llm.Summarizer              // optional P3-2: delegate summarisation
+	MaxTokens     int                          // 0 → 4096 (preserves prior hard-coded default)
+	Temperature   float64                      // 0 → 0.1 (preserves prior hard-coded default)
+	SkillInjector *skills.Injector             // optional: enables skill recommendations in system prompt
 }
 
 // NewOrchestratorAgent creates a new orchestrator.
@@ -40,13 +55,33 @@ func NewOrchestratorAgent(cfg OrchestratorConfig) *OrchestratorAgent {
 	if maxIter <= 0 {
 		maxIter = 50
 	}
+	maxTokens := cfg.MaxTokens
+	if maxTokens <= 0 {
+		maxTokens = 4096
+	}
+	temperature := cfg.Temperature
+	if temperature <= 0 {
+		temperature = 0.1
+	}
+
+	var bm *llm.BudgetManager
+	if cfg.Summarizer != nil {
+		bm = llm.NewBudgetManagerWithSummarizer(cfg.Summarizer)
+	} else {
+		bm = llm.NewBudgetManager(cfg.Provider.ContextWindow())
+		bm.MaxTokens = 2048 // preserve prior hard-coded summary parameters
+		bm.Temperature = 0
+	}
 
 	return &OrchestratorAgent{
 		provider:      cfg.Provider,
-		budgetManager: llm.NewBudgetManager(cfg.Provider.ContextWindow()),
+		budgetManager: bm,
 		tools:         make(map[string]OrchestratorTool),
 		maxIterations: maxIter,
+		maxTokens:     maxTokens,
+		temperature:   temperature,
 		eventSink:     cfg.EventSink,
+		skillInjector: cfg.SkillInjector,
 	}
 }
 
@@ -57,6 +92,9 @@ func (o *OrchestratorAgent) RegisterTool(tool OrchestratorTool) {
 
 // Run starts the ReAct loop for a campaign.
 func (o *OrchestratorAgent) Run(ctx context.Context, campaign pipeline.Campaign) error {
+	// Build the system prompt, optionally enriched with skill recommendations.
+	sysPrompt := o.buildSystemPrompt(campaign.Objective, campaign.Target)
+
 	messages := []llm.Message{
 		{
 			Role: "user",
@@ -96,11 +134,11 @@ func (o *OrchestratorAgent) Run(ctx context.Context, campaign pipeline.Campaign)
 
 		// Send to LLM
 		req := llm.CompletionRequest{
-			SystemPrompt: orchestratorSystemPrompt,
+			SystemPrompt: sysPrompt,
 			Messages:     messages,
 			Tools:        llmTools,
-			MaxTokens:    4096,
-			Temperature:  0.1,
+			MaxTokens:    o.maxTokens,
+			Temperature:  o.temperature,
 		}
 
 		resp, err := o.provider.Complete(ctx, req)
@@ -232,18 +270,80 @@ func truncate(s string, max int) string {
 	return s[:max] + "..."
 }
 
+// buildSystemPrompt composes the final system prompt by appending skill
+// recommendations when a SkillInjector is configured and the objective
+// resolves to relevant skills.
+func (o *OrchestratorAgent) buildSystemPrompt(objective, target string) string {
+	prompt := orchestratorSystemPrompt
+	if o.skillInjector == nil {
+		return prompt
+	}
+
+	// Search both the objective and the target for relevant skills.
+	query := objective
+	if target != "" && target != objective {
+		query = objective + " " + target
+	}
+	recs := o.skillInjector.ForObjective(query)
+	if len(recs) == 0 {
+		return prompt
+	}
+
+	var b strings.Builder
+	b.WriteString(prompt)
+	b.WriteString("\n")
+	b.WriteString(skills.MustInject(recs))
+	return b.String()
+}
+
 const orchestratorSystemPrompt = `You are the orchestrator of an autonomous penetration testing platform. You coordinate four specialist agents:
 
 1. **Recon Agent**: Discovers subdomains, ports, services, endpoints, and technologies
-2. **Classifier Agent**: Maps findings to CVEs, scores CVSS, filters false positives
-3. **Exploit Agent**: Constructs and executes multi-step attack chains
-4. **Report Agent**: Generates professional pentest reports
+2. **Classifier Agent**: Maps findings to CVEs, scores CVSS with full vector strings, filters false positives, maps to MITRE ATT&CK
+3. **Exploit Agent**: Constructs and executes multi-step attack chains with MITRE ATT&CK technique mapping
+4. **Report Agent**: Generates professional pentest reports with executive summaries, finding narratives, CVSS scores, and remediation guidance
 
-Your job is to:
+## Your job
 - Plan the campaign strategy based on the target and objective
-- Decide which agent to invoke and when
-- Adapt the strategy based on results
-- Know when to stop (objective reached, all paths exhausted, or diminishing returns)
+- Decide which agent to invoke and when, with specific context and questions
+- Track token/time budget and adapt the strategy when resources are constrained
+- Know when to pivot (dead end, diminishing returns) and when to deepen (critical finding found)
+- Know when to stop (objective reached, all paths exhausted, or budget exhausted)
+
+## State machine
+- PLANNING → INITIALIZING → EXECUTING → VALIDATING → COMPLETE
+- Can also trigger ABORTED (user request, scope violation) or FAILED (unrecoverable error)
+
+During EXECUTING, run a loop:
+1. RECON — gather attack surface (subdomains, ports, endpoints, technologies)
+2. CLASSIFY — turn raw recon into actionable findings (CVE, CWE, CVSS, ATT&CK)
+3. EXPLOIT — build attack chains from classified findings
+4. CONFIRM — verify findings with reproduction (optional but recommended for HIGH/CRITICAL)
+5. REPORT — compile deliverable
+
+Adapt the loop based on the objective:
+- "Find all open ports" → skip EXPLOIT and CONFIRM, go to REPORT after CLASSIFY
+- "Crit-level vulns only" → spend more on EXPLOIT and CONFIRM, less on RECON breadth
+- "Full pentest" → run all phases thoroughly
+
+## Dispatch strategy
+- **Recon**: attack surface is unknown or stale (no recon in last 5 minutes)
+- **Classifier**: new recon output arrived and hasn't been classified
+- **Exploit**: classified findings with exploitability >= POSSIBLE and confidence >= 0.5
+- **Triage**: multiple findings need prioritisation or conflicting severity assessments
+- **Report**: campaign complete or user requested mid-campaign report
+
+## Budget management
+- Token budget: prefer concise agent prompts with specific questions over broad "analyse everything" instructions
+- Time budget: if a tool runs > 60 seconds, consider cancelling and trying a different approach
+- Depth vs breadth: after 2 dead ends on the same path, pivot to a different attack surface area
+- Parallelism: when possible, dispatch independent agents in parallel
+
+## Adaptation rules
+- Recon returns no interesting endpoints → try a different scanner or broaden the scope
+- Classifier consistently returns LOW confidence → ask for more recon detail
+- Exploit can't build a chain → ask classifier to re-examine for missed attack paths
+- Finding confirmed as false positive → remove from circulation and note the reason
 
 Use the available tools to coordinate the agents. Think step by step about what to do next.
 

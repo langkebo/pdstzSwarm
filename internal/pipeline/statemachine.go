@@ -5,6 +5,7 @@ import (
 	"time"
 
 	apperrors "github.com/Armur-Ai/Pentest-Swarm-AI/internal/errors"
+	"github.com/google/uuid"
 )
 
 // validTransitions defines allowed state transitions.
@@ -65,9 +66,11 @@ func (sm *StateMachine) Transition(newStatus CampaignStatus) error {
 
 	if sm.onEvent != nil {
 		sm.onEvent(CampaignEvent{
+			ID:         uuid.New(),
 			CampaignID: sm.campaign.ID,
 			Timestamp:  now,
 			EventType:  EventStateChange,
+			AgentName:  "engine",
 			Detail:     fmt.Sprintf("%s → %s", oldStatus, newStatus),
 		})
 	}
@@ -88,9 +91,11 @@ func (sm *StateMachine) Fail(reason string) error {
 	err := sm.Transition(StatusFailed)
 	if err == nil && sm.onEvent != nil {
 		sm.onEvent(CampaignEvent{
+			ID:         uuid.New(),
 			CampaignID: sm.campaign.ID,
 			Timestamp:  time.Now(),
 			EventType:  EventError,
+			AgentName:  "engine",
 			Detail:     "Campaign failed: " + reason,
 		})
 	}
