@@ -1,1 +1,0 @@
-self.__NEXT_FONT_MANIFEST='{"pages":{},"app":{"/home/tzd/Pentest-Swarm-AI/web/src/app/layout":["static/media/e4af272ccee01ff0-s.p.woff2","static/media/b7bd7951037de757-s.p.woff2","static/media/558ca1a6aa3cb55e-s.p.woff2","static/media/36966cca54120369-s.p.woff2"]},"appUsingSizeAdjust":true,"pagesUsingSizeAdjust":false}';

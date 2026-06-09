@@ -29,6 +29,10 @@ config.yaml
 # Node / React
 node_modules/
 web/dist/
+web/.next/
+web/out/
+web/tsconfig.tsbuildinfo
+web/next-env.d.ts
 .vite/
 
 # Python
