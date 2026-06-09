@@ -25,6 +25,7 @@ config.yaml
 *.gguf
 *.bin
 *.safetensors
+Pentest_LLM.gguf
 
 # Node / React
 node_modules/
